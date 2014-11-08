@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
  
 import os
-
 # http://stevenloria.com/hosting-static-flask-sites-for-free-on-github-pages/
  
 REPO_NAME = "tio2" # Used for FREEZER_BASE_URL
