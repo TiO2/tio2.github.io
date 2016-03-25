@@ -30,3 +30,23 @@ FREEZER_REMOVE_EXTRA_FILES = False # IMPORTANT: If this is True, all app files
 FLATPAGES_MARKDOWN_EXTENSIONS = ['codehilite']
 FLATPAGES_ROOT = os.path.join(APP_DIR, 'pages')
 FLATPAGES_EXTENSION = '.md'
+
+
+
+import csv,datetime
+
+data = [line for line in csv.DictReader(open('{}/Job_source.csv'.format(FLATPAGES_ROOT), 'rb'),quotechar='"', delimiter=',',skipinitialspace=True)]
+
+
+for item in data:
+    theFile = item['Title']
+    
+    with open('{}/{}.md'.format(FLATPAGES_ROOT,theFile),'wb') as f:
+        f.write('title: {}\n'.format(item['Title']))
+        f.write('date: {}\n\n'.format(datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')))
+        f.write('{}\n \n \n {}'.format(item['Company'],item['Description']))
+
+# TODO, avoid multiple writing to the same file. 
+# how to tell if a file has been updated or not? 
+
+

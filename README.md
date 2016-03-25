@@ -11,3 +11,18 @@ This is a test of static Flask site by Frozen-Flask (for building static content
 *这个？*
 
 
+
+$ pip install -r requirements.txt
+# Run local server
+$ python run.py
+# Build static content
+$ python freeze.py
+
+Reference: https://github.com/sloria/flask-ghpages-example
+
+
+
+
+
+
+
