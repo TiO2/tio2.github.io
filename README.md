@@ -11,6 +11,13 @@ This is a test of static Flask site by Frozen-Flask (for building static content
 *这个？*
 
 
+History:
+03-25-2016
+the csv as the format for post input
+check the csv_to_md.py
+However, pay attention, that the created md filename can not contian blanks or the github will not render the page at all. 
+
+
 
 $ pip install -r requirements.txt
 # Run local server

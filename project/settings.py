@@ -39,8 +39,7 @@ data = [line for line in csv.DictReader(open('{}/Job_source.csv'.format(FLATPAGE
 
 
 for item in data:
-    theFile = item['Title']
-    
+    theFile = item['Title'].replace(' ','')    
     with open('{}/{}.md'.format(FLATPAGES_ROOT,theFile),'wb') as f:
         f.write('title: {}\n'.format(item['Title']))
         f.write('date: {}\n\n'.format(datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')))
