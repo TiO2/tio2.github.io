@@ -35,15 +35,39 @@ FLATPAGES_EXTENSION = '.md'
 
 import csv,datetime
 
-data = [line for line in csv.DictReader(open('{}/Job_source.csv'.format(FLATPAGES_ROOT), 'rb'),quotechar='"', delimiter=',',skipinitialspace=True)]
+if os.stat('{}/Job_source.csv'.format(FLATPAGES_ROOT)).st_size != 0:
+    # if the file size not equal 0
+    data = [line for line in csv.DictReader(open('{}/Job_source.csv'.format(FLATPAGES_ROOT), 'rb'),quotechar='"', delimiter=',',skipinitialspace=True)]
 
+    # aking a copy of the original csv or append to a backup csv
+    # to avoid multiple updates to the same contents.
+    for item in data:
+        theFile = item['Title'].replace(' ','')    
+        with open('{}/{}.md'.format(FLATPAGES_ROOT,theFile),'wb') as f:
+            f.write('title: {}\n'.format(item['Title']))
+            f.write('date: {}\n\n'.format(datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')))
+            f.write('{}\n \n \n {}'.format(item['Company'],item['Description']))
+        #with open('{}/Job_source_converted.csv'.format(FLATPAGES_ROOT), 'a') as f1:
+        #    f1.write
 
-for item in data:
-    theFile = item['Title'].replace(' ','')    
-    with open('{}/{}.md'.format(FLATPAGES_ROOT,theFile),'wb') as f:
-        f.write('title: {}\n'.format(item['Title']))
-        f.write('date: {}\n\n'.format(datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')))
-        f.write('{}\n \n \n {}'.format(item['Company'],item['Description']))
+    # empty the input csv content, cut and append its content to the Job_source_converted.csv
+    # append
+    fieldnames = data[1].keys()
+    #out_file = open('{}/Job_source_converted.csv'.format(FLATPAGES_ROOT), 'a')
+    #csvwriter = csv.DictWriter(out_file, delimiter=',', fieldnames=fieldnames)
+    #csvwriter.writerow(dict((fn,fn) for fn in fieldnames))
+    #for row in data:
+    #    csvwriter.writerow(row)
+    #out_file.close()    
+    with open('{}/Job_source_converted.csv'.format(FLATPAGES_ROOT), 'a') as outfile:
+        with open('{}/Job_source.csv'.format(FLATPAGES_ROOT),'rb') as infile:
+            outfile.write(infile.read())
+               
+    # empty (truncate) the file, but keep first line(header?)
+    with open('{}/Job_source.csv'.format(FLATPAGES_ROOT),'wb') as f:   
+        f.truncate()
+        #f.write(','.join(fieldnames))
+
 
 # TODO, avoid multiple writing to the same file. 
 # how to tell if a file has been updated or not? 
