@@ -1,7 +1,7 @@
 <!doctype html>
 <head>
 <meta charset="utf-8">
-<title>{% block page_title %}Your Site{% endblock %}</title>
+<title>{% block page_title %}My Site - Pei Ma{% endblock %}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 {% block css %}{% endblock %}
 </head>
@@ -9,6 +9,7 @@
 <nav class="nav-menu">
 <ul>
 <li><a href="{{ url_for('home') }}">Home</a></li>
+<li><a href="{{ url_for('blog') }}">Blog</a></li>
 </ul>
 </nav>
 <div class="{% block content_class %}container{% endblock content_class %}">
@@ -16,6 +17,9 @@
 {% block content %}{% endblock %}
 </div>
 </div><!-- end container -->
+
+<div class="col-sm-12"><p>Copyright &copy; 2016 MyBlog - by <a href="http://tio2.github.io"> Pei Ma </a></p></div>
+
 <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
