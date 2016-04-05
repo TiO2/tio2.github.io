@@ -6,6 +6,14 @@ from app import app, pages
 def home():
     return render_template('index.html')
  
+@app.route('/cv/')
+def cv():
+    return render_template('cv.html')
+
+@app.route('/publication/')
+def publication():
+    return render_template('publication.html')
+    
  
 @app.route('/blog/')
 def blog():

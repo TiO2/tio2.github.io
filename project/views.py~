@@ -6,9 +6,13 @@ from app import app, pages
 def home():
     return render_template('index.html')
  
+@app.route('/cv/')
+def cv():
+    return render_template('cv.html')
+
  
 @app.route('/blog/')
-def home():
+def blog():
     posts = [page for page in pages if 'date' in page.meta]
     # Sort pages by date
     sorted_posts = sorted(posts, reverse=True,
