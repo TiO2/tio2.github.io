@@ -1,422 +1,643 @@
 {% extends "base.html" %}
 
 {% block css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/cv_July_2015.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pdf2html.css') }}">
+
 {% endblock %}
 
 {% block content %}
-<div class="centerline">   
-<span 
-class="cmbx-12x-x-172">PEI</span>
-<span 
-class="cmbx-12x-x-172">MA</span>
+
+
+
+<script>
+/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
+/* Copyright 2012 Mozilla Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/* globals VBArray, PDFJS */
+
+'use strict';
+
+// Initializing PDFJS global object here, it case if we need to change/disable
+// some PDF.js features, e.g. range requests
+if (typeof PDFJS === 'undefined') {
+  (typeof window !== 'undefined' ? window : this).PDFJS = {};
+}
+
+// Checking if the typed arrays are supported
+// Support: iOS<6.0 (subarray), IE<10, Android<4.0
+(function checkTypedArrayCompatibility() {
+  if (typeof Uint8Array !== 'undefined') {
+    // Support: iOS<6.0
+    if (typeof Uint8Array.prototype.subarray === 'undefined') {
+        Uint8Array.prototype.subarray = function subarray(start, end) {
+          return new Uint8Array(this.slice(start, end));
+        };
+        Float32Array.prototype.subarray = function subarray(start, end) {
+          return new Float32Array(this.slice(start, end));
+        };
+    }
+
+    // Support: Android<4.1
+    if (typeof Float64Array === 'undefined') {
+      window.Float64Array = Float32Array;
+    }
+    return;
+  }
+
+  function subarray(start, end) {
+    return new TypedArray(this.slice(start, end));
+  }
+
+  function setArrayOffset(array, offset) {
+    if (arguments.length < 2) {
+      offset = 0;
+    }
+    for (var i = 0, n = array.length; i < n; ++i, ++offset) {
+      this[offset] = array[i] & 0xFF;
+    }
+  }
+
+  function TypedArray(arg1) {
+    var result, i, n;
+    if (typeof arg1 === 'number') {
+      result = [];
+      for (i = 0; i < arg1; ++i) {
+        result[i] = 0;
+      }
+    } else if ('slice' in arg1) {
+      result = arg1.slice(0);
+    } else {
+      result = [];
+      for (i = 0, n = arg1.length; i < n; ++i) {
+        result[i] = arg1[i];
+      }
+    }
+
+    result.subarray = subarray;
+    result.buffer = result;
+    result.byteLength = result.length;
+    result.set = setArrayOffset;
+
+    if (typeof arg1 === 'object' && arg1.buffer) {
+      result.buffer = arg1.buffer;
+    }
+    return result;
+  }
+
+  window.Uint8Array = TypedArray;
+  window.Int8Array = TypedArray;
+
+  // we don't need support for set, byteLength for 32-bit array
+  // so we can use the TypedArray as well
+  window.Uint32Array = TypedArray;
+  window.Int32Array = TypedArray;
+  window.Uint16Array = TypedArray;
+  window.Float32Array = TypedArray;
+  window.Float64Array = TypedArray;
+})();
+
+// URL = URL || webkitURL
+// Support: Safari<7, Android 4.2+
+(function normalizeURLObject() {
+  if (!window.URL) {
+    window.URL = window.webkitURL;
+  }
+})();
+
+// Object.defineProperty()?
+// Support: Android<4.0, Safari<5.1
+(function checkObjectDefinePropertyCompatibility() {
+  if (typeof Object.defineProperty !== 'undefined') {
+    var definePropertyPossible = true;
+    try {
+      // some browsers (e.g. safari) cannot use defineProperty() on DOM objects
+      // and thus the native version is not sufficient
+      Object.defineProperty(new Image(), 'id', { value: 'test' });
+      // ... another test for android gb browser for non-DOM objects
+      var Test = function Test() {};
+      Test.prototype = { get id() { } };
+      Object.defineProperty(new Test(), 'id',
+        { value: '', configurable: true, enumerable: true, writable: false });
+    } catch (e) {
+      definePropertyPossible = false;
+    }
+    if (definePropertyPossible) {
+      return;
+    }
+  }
+
+  Object.defineProperty = function objectDefineProperty(obj, name, def) {
+    delete obj[name];
+    if ('get' in def) {
+      obj.__defineGetter__(name, def['get']);
+    }
+    if ('set' in def) {
+      obj.__defineSetter__(name, def['set']);
+    }
+    if ('value' in def) {
+      obj.__defineSetter__(name, function objectDefinePropertySetter(value) {
+        this.__defineGetter__(name, function objectDefinePropertyGetter() {
+          return value;
+        });
+        return value;
+      });
+      obj[name] = def.value;
+    }
+  };
+})();
+
+
+// No XMLHttpRequest#response?
+// Support: IE<11, Android <4.0
+(function checkXMLHttpRequestResponseCompatibility() {
+  var xhrPrototype = XMLHttpRequest.prototype;
+  var xhr = new XMLHttpRequest();
+  if (!('overrideMimeType' in xhr)) {
+    // IE10 might have response, but not overrideMimeType
+    // Support: IE10
+    Object.defineProperty(xhrPrototype, 'overrideMimeType', {
+      value: function xmlHttpRequestOverrideMimeType(mimeType) {}
+    });
+  }
+  if ('responseType' in xhr) {
+    return;
+  }
+
+  // The worker will be using XHR, so we can save time and disable worker.
+  PDFJS.disableWorker = true;
+
+  Object.defineProperty(xhrPrototype, 'responseType', {
+    get: function xmlHttpRequestGetResponseType() {
+      return this._responseType || 'text';
+    },
+    set: function xmlHttpRequestSetResponseType(value) {
+      if (value === 'text' || value === 'arraybuffer') {
+        this._responseType = value;
+        if (value === 'arraybuffer' &&
+            typeof this.overrideMimeType === 'function') {
+          this.overrideMimeType('text/plain; charset=x-user-defined');
+        }
+      }
+    }
+  });
+
+  // Support: IE9
+  if (typeof VBArray !== 'undefined') {
+    Object.defineProperty(xhrPrototype, 'response', {
+      get: function xmlHttpRequestResponseGet() {
+        if (this.responseType === 'arraybuffer') {
+          return new Uint8Array(new VBArray(this.responseBody).toArray());
+        } else {
+          return this.responseText;
+        }
+      }
+    });
+    return;
+  }
+
+  Object.defineProperty(xhrPrototype, 'response', {
+    get: function xmlHttpRequestResponseGet() {
+      if (this.responseType !== 'arraybuffer') {
+        return this.responseText;
+      }
+      var text = this.responseText;
+      var i, n = text.length;
+      var result = new Uint8Array(n);
+      for (i = 0; i < n; ++i) {
+        result[i] = text.charCodeAt(i) & 0xFF;
+      }
+      return result.buffer;
+    }
+  });
+})();
+
+// window.btoa (base64 encode function) ?
+// Support: IE<10
+(function checkWindowBtoaCompatibility() {
+  if ('btoa' in window) {
+    return;
+  }
+
+  var digits =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+
+  window.btoa = function windowBtoa(chars) {
+    var buffer = '';
+    var i, n;
+    for (i = 0, n = chars.length; i < n; i += 3) {
+      var b1 = chars.charCodeAt(i) & 0xFF;
+      var b2 = chars.charCodeAt(i + 1) & 0xFF;
+      var b3 = chars.charCodeAt(i + 2) & 0xFF;
+      var d1 = b1 >> 2, d2 = ((b1 & 3) << 4) | (b2 >> 4);
+      var d3 = i + 1 < n ? ((b2 & 0xF) << 2) | (b3 >> 6) : 64;
+      var d4 = i + 2 < n ? (b3 & 0x3F) : 64;
+      buffer += (digits.charAt(d1) + digits.charAt(d2) +
+                 digits.charAt(d3) + digits.charAt(d4));
+    }
+    return buffer;
+  };
+})();
+
+// window.atob (base64 encode function)?
+// Support: IE<10
+(function checkWindowAtobCompatibility() {
+  if ('atob' in window) {
+    return;
+  }
+
+  // https://github.com/davidchambers/Base64.js
+  var digits =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+  window.atob = function (input) {
+    input = input.replace(/=+$/, '');
+    if (input.length % 4 === 1) {
+      throw new Error('bad atob input');
+    }
+    for (
+      // initialize result and counters
+      var bc = 0, bs, buffer, idx = 0, output = '';
+      // get next character
+      buffer = input.charAt(idx++);
+      // character found in table?
+      // initialize bit storage and add its ascii value
+      ~buffer && (bs = bc % 4 ? bs * 64 + buffer : buffer,
+        // and if not first of each 4 characters,
+        // convert the first 8 bits to one ascii character
+        bc++ % 4) ? output += String.fromCharCode(255 & bs >> (-2 * bc & 6)) : 0
+    ) {
+      // try to find character in table (0-63, not found => -1)
+      buffer = digits.indexOf(buffer);
+    }
+    return output;
+  };
+})();
+
+// Function.prototype.bind?
+// Support: Android<4.0, iOS<6.0
+(function checkFunctionPrototypeBindCompatibility() {
+  if (typeof Function.prototype.bind !== 'undefined') {
+    return;
+  }
+
+  Function.prototype.bind = function functionPrototypeBind(obj) {
+    var fn = this, headArgs = Array.prototype.slice.call(arguments, 1);
+    var bound = function functionPrototypeBindBound() {
+      var args = headArgs.concat(Array.prototype.slice.call(arguments));
+      return fn.apply(obj, args);
+    };
+    return bound;
+  };
+})();
+
+// HTMLElement dataset property
+// Support: IE<11, Safari<5.1, Android<4.0
+(function checkDatasetProperty() {
+  var div = document.createElement('div');
+  if ('dataset' in div) {
+    return; // dataset property exists
+  }
+
+  Object.defineProperty(HTMLElement.prototype, 'dataset', {
+    get: function() {
+      if (this._dataset) {
+        return this._dataset;
+      }
+
+      var dataset = {};
+      for (var j = 0, jj = this.attributes.length; j < jj; j++) {
+        var attribute = this.attributes[j];
+        if (attribute.name.substring(0, 5) !== 'data-') {
+          continue;
+        }
+        var key = attribute.name.substring(5).replace(/\-([a-z])/g,
+          function(all, ch) {
+            return ch.toUpperCase();
+          });
+        dataset[key] = attribute.value;
+      }
+
+      Object.defineProperty(this, '_dataset', {
+        value: dataset,
+        writable: false,
+        enumerable: false
+      });
+      return dataset;
+    },
+    enumerable: true
+  });
+})();
+
+// HTMLElement classList property
+// Support: IE<10, Android<4.0, iOS<5.0
+(function checkClassListProperty() {
+  var div = document.createElement('div');
+  if ('classList' in div) {
+    return; // classList property exists
+  }
+
+  function changeList(element, itemName, add, remove) {
+    var s = element.className || '';
+    var list = s.split(/\s+/g);
+    if (list[0] === '') {
+      list.shift();
+    }
+    var index = list.indexOf(itemName);
+    if (index < 0 && add) {
+      list.push(itemName);
+    }
+    if (index >= 0 && remove) {
+      list.splice(index, 1);
+    }
+    element.className = list.join(' ');
+    return (index >= 0);
+  }
+
+  var classListPrototype = {
+    add: function(name) {
+      changeList(this.element, name, true, false);
+    },
+    contains: function(name) {
+      return changeList(this.element, name, false, false);
+    },
+    remove: function(name) {
+      changeList(this.element, name, false, true);
+    },
+    toggle: function(name) {
+      changeList(this.element, name, true, true);
+    }
+  };
+
+  Object.defineProperty(HTMLElement.prototype, 'classList', {
+    get: function() {
+      if (this._classList) {
+        return this._classList;
+      }
+
+      var classList = Object.create(classListPrototype, {
+        element: {
+          value: this,
+          writable: false,
+          enumerable: true
+        }
+      });
+      Object.defineProperty(this, '_classList', {
+        value: classList,
+        writable: false,
+        enumerable: false
+      });
+      return classList;
+    },
+    enumerable: true
+  });
+})();
+
+// Check console compatibility
+// In older IE versions the console object is not available
+// unless console is open.
+// Support: IE<10
+(function checkConsoleCompatibility() {
+  if (!('console' in window)) {
+    window.console = {
+      log: function() {},
+      error: function() {},
+      warn: function() {}
+    };
+  } else if (!('bind' in console.log)) {
+    // native functions in IE9 might not have bind
+    console.log = (function(fn) {
+      return function(msg) { return fn(msg); };
+    })(console.log);
+    console.error = (function(fn) {
+      return function(msg) { return fn(msg); };
+    })(console.error);
+    console.warn = (function(fn) {
+      return function(msg) { return fn(msg); };
+    })(console.warn);
+  }
+})();
+
+// Check onclick compatibility in Opera
+// Support: Opera<15
+(function checkOnClickCompatibility() {
+  // workaround for reported Opera bug DSK-354448:
+  // onclick fires on disabled buttons with opaque content
+  function ignoreIfTargetDisabled(event) {
+    if (isDisabled(event.target)) {
+      event.stopPropagation();
+    }
+  }
+  function isDisabled(node) {
+    return node.disabled || (node.parentNode && isDisabled(node.parentNode));
+  }
+  if (navigator.userAgent.indexOf('Opera') !== -1) {
+    // use browser detection since we cannot feature-check this bug
+    document.addEventListener('click', ignoreIfTargetDisabled, true);
+  }
+})();
+
+// Checks if possible to use URL.createObjectURL()
+// Support: IE
+(function checkOnBlobSupport() {
+  // sometimes IE loosing the data created with createObjectURL(), see #3977
+  if (navigator.userAgent.indexOf('Trident') >= 0) {
+    PDFJS.disableCreateObjectURL = true;
+  }
+})();
+
+// Checks if navigator.language is supported
+(function checkNavigatorLanguage() {
+  if ('language' in navigator) {
+    return;
+  }
+  PDFJS.locale = navigator.userLanguage || 'en-US';
+})();
+
+(function checkRangeRequests() {
+  // Safari has issues with cached range requests see:
+  // https://github.com/mozilla/pdf.js/issues/3260
+  // Last tested with version 6.0.4.
+  // Support: Safari 6.0+
+  var isSafari = Object.prototype.toString.call(
+                  window.HTMLElement).indexOf('Constructor') > 0;
+
+  // Older versions of Android (pre 3.0) has issues with range requests, see:
+  // https://github.com/mozilla/pdf.js/issues/3381.
+  // Make sure that we only match webkit-based Android browsers,
+  // since Firefox/Fennec works as expected.
+  // Support: Android<3.0
+  var regex = /Android\s[0-2][^\d]/;
+  var isOldAndroid = regex.test(navigator.userAgent);
+
+  // Range requests are broken in Chrome 39 and 40, https://crbug.com/442318
+  var isChromeWithRangeBug = /Chrome\/(39|40)\./.test(navigator.userAgent);
+
+  if (isSafari || isOldAndroid || isChromeWithRangeBug) {
+    PDFJS.disableRange = true;
+    PDFJS.disableStream = true;
+  }
+})();
+
+// Check if the browser supports manipulation of the history.
+// Support: IE<10, Android<4.2
+(function checkHistoryManipulation() {
+  // Android 2.x has so buggy pushState support that it was removed in
+  // Android 3.0 and restored as late as in Android 4.2.
+  // Support: Android 2.x
+  if (!history.pushState || navigator.userAgent.indexOf('Android 2.') >= 0) {
+    PDFJS.disableHistory = true;
+  }
+})();
+
+// Support: IE<11, Chrome<21, Android<4.4, Safari<6
+(function checkSetPresenceInImageData() {
+  // IE < 11 will use window.CanvasPixelArray which lacks set function.
+  if (window.CanvasPixelArray) {
+    if (typeof window.CanvasPixelArray.prototype.set !== 'function') {
+      window.CanvasPixelArray.prototype.set = function(arr) {
+        for (var i = 0, ii = this.length; i < ii; i++) {
+          this[i] = arr[i];
+        }
+      };
+    }
+  } else {
+    // Old Chrome and Android use an inaccessible CanvasPixelArray prototype.
+    // Because we cannot feature detect it, we rely on user agent parsing.
+    var polyfill = false, versionMatch;
+    if (navigator.userAgent.indexOf('Chrom') >= 0) {
+      versionMatch = navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./);
+      // Chrome < 21 lacks the set function.
+      polyfill = versionMatch && parseInt(versionMatch[2]) < 21;
+    } else if (navigator.userAgent.indexOf('Android') >= 0) {
+      // Android < 4.4 lacks the set function.
+      // Android >= 4.4 will contain Chrome in the user agent,
+      // thus pass the Chrome check above and not reach this block.
+      polyfill = /Android\s[0-4][^\d]/g.test(navigator.userAgent);
+    } else if (navigator.userAgent.indexOf('Safari') >= 0) {
+      versionMatch = navigator.userAgent.
+        match(/Version\/([0-9]+)\.([0-9]+)\.([0-9]+) Safari\//);
+      // Safari < 6 lacks the set function.
+      polyfill = versionMatch && parseInt(versionMatch[1]) < 6;
+    }
+
+    if (polyfill) {
+      var contextPrototype = window.CanvasRenderingContext2D.prototype;
+      contextPrototype._createImageData = contextPrototype.createImageData;
+      contextPrototype.createImageData = function(w, h) {
+        var imageData = this._createImageData(w, h);
+        imageData.data.set = function(arr) {
+          for (var i = 0, ii = this.length; i < ii; i++) {
+            this[i] = arr[i];
+          }
+        };
+        return imageData;
+      };
+    }
+  }
+})();
+
+// Support: IE<10, Android<4.0, iOS
+(function checkRequestAnimationFrame() {
+  function fakeRequestAnimationFrame(callback) {
+    window.setTimeout(callback, 20);
+  }
+
+  var isIOS = /(iPad|iPhone|iPod)/g.test(navigator.userAgent);
+  if (isIOS) {
+    // requestAnimationFrame on iOS is broken, replacing with fake one.
+    window.requestAnimationFrame = fakeRequestAnimationFrame;
+    return;
+  }
+  if ('requestAnimationFrame' in window) {
+    return;
+  }
+  window.requestAnimationFrame =
+    window.mozRequestAnimationFrame ||
+    window.webkitRequestAnimationFrame ||
+    fakeRequestAnimationFrame;
+})();
+
+(function checkCanvasSizeLimitation() {
+  var isIOS = /(iPad|iPhone|iPod)/g.test(navigator.userAgent);
+  var isAndroid = /Android/g.test(navigator.userAgent);
+  if (isIOS || isAndroid) {
+    // 5MP
+    PDFJS.maxCanvasPixels = 5242880;
+  }
+})();
+
+// Disable fullscreen support for certain problematic configurations.
+// Support: IE11+ (when embedded).
+(function checkFullscreenSupport() {
+  var isEmbeddedIE = (navigator.userAgent.indexOf('Trident') >= 0 &&
+                      window.parent !== window);
+  if (isEmbeddedIE) {
+    PDFJS.disableFullscreen = true;
+  }
+})();
+</script>
+<script>
+(function(){/*
+ pdf2htmlEX.js: Core UI functions for pdf2htmlEX 
+ Copyright 2012,2013 Lu Wang <coolwanglu@gmail.com> and other contributors 
+ https://github.com/coolwanglu/pdf2htmlEX/blob/master/share/LICENSE 
+*/
+var pdf2htmlEX=window.pdf2htmlEX=window.pdf2htmlEX||{},CSS_CLASS_NAMES={page_frame:"pf",page_content_box:"pc",page_data:"pi",background_image:"bi",link:"l",input_radio:"ir",__dummy__:"no comma"},DEFAULT_CONFIG={container_id:"page-container",sidebar_id:"sidebar",outline_id:"outline",loading_indicator_cls:"loading-indicator",preload_pages:3,render_timeout:100,scale_step:0.9,key_handler:!0,hashchange_handler:!0,view_history_handler:!0,__dummy__:"no comma"},EPS=1E-6;
+function invert(a){var b=a[0]*a[3]-a[1]*a[2];return[a[3]/b,-a[1]/b,-a[2]/b,a[0]/b,(a[2]*a[5]-a[3]*a[4])/b,(a[1]*a[4]-a[0]*a[5])/b]}function transform(a,b){return[a[0]*b[0]+a[2]*b[1]+a[4],a[1]*b[0]+a[3]*b[1]+a[5]]}function get_page_number(a){return parseInt(a.getAttribute("data-page-no"),16)}function disable_dragstart(a){for(var b=0,c=a.length;b<c;++b)a[b].addEventListener("dragstart",function(){return!1},!1)}
+function clone_and_extend_objs(a){for(var b={},c=0,e=arguments.length;c<e;++c){var h=arguments[c],d;for(d in h)h.hasOwnProperty(d)&&(b[d]=h[d])}return b}
+function Page(a){if(a){this.shown=this.loaded=!1;this.page=a;this.num=get_page_number(a);this.original_height=a.clientHeight;this.original_width=a.clientWidth;var b=a.getElementsByClassName(CSS_CLASS_NAMES.page_content_box)[0];b&&(this.content_box=b,this.original_scale=this.cur_scale=this.original_height/b.clientHeight,this.page_data=JSON.parse(a.getElementsByClassName(CSS_CLASS_NAMES.page_data)[0].getAttribute("data-data")),this.ctm=this.page_data.ctm,this.ictm=invert(this.ctm),this.loaded=!0)}}
+Page.prototype={hide:function(){this.loaded&&this.shown&&(this.content_box.classList.remove("opened"),this.shown=!1)},show:function(){this.loaded&&!this.shown&&(this.content_box.classList.add("opened"),this.shown=!0)},rescale:function(a){this.cur_scale=0===a?this.original_scale:a;this.loaded&&(a=this.content_box.style,a.msTransform=a.webkitTransform=a.transform="scale("+this.cur_scale.toFixed(3)+")");a=this.page.style;a.height=this.original_height*this.cur_scale+"px";a.width=this.original_width*this.cur_scale+
+"px"},view_position:function(){var a=this.page,b=a.parentNode;return[b.scrollLeft-a.offsetLeft-a.clientLeft,b.scrollTop-a.offsetTop-a.clientTop]},height:function(){return this.page.clientHeight},width:function(){return this.page.clientWidth}};function Viewer(a){this.config=clone_and_extend_objs(DEFAULT_CONFIG,0<arguments.length?a:{});this.pages_loading=[];this.init_before_loading_content();var b=this;document.addEventListener("DOMContentLoaded",function(){b.init_after_loading_content()},!1)}
+Viewer.prototype={scale:1,cur_page_idx:0,first_page_idx:0,init_before_loading_content:function(){this.pre_hide_pages()},initialize_radio_button:function(){for(var a=document.getElementsByClassName(CSS_CLASS_NAMES.input_radio),b=0;b<a.length;b++)a[b].addEventListener("click",function(){this.classList.toggle("checked")})},init_after_loading_content:function(){this.sidebar=document.getElementById(this.config.sidebar_id);this.outline=document.getElementById(this.config.outline_id);this.container=document.getElementById(this.config.container_id);
+this.loading_indicator=document.getElementsByClassName(this.config.loading_indicator_cls)[0];for(var a=!0,b=this.outline.childNodes,c=0,e=b.length;c<e;++c)if("ul"===b[c].nodeName.toLowerCase()){a=!1;break}a||this.sidebar.classList.add("opened");this.find_pages();if(0!=this.pages.length){disable_dragstart(document.getElementsByClassName(CSS_CLASS_NAMES.background_image));this.config.key_handler&&this.register_key_handler();var h=this;this.config.hashchange_handler&&window.addEventListener("hashchange",
+function(a){h.navigate_to_dest(document.location.hash.substring(1))},!1);this.config.view_history_handler&&window.addEventListener("popstate",function(a){a.state&&h.navigate_to_dest(a.state)},!1);this.container.addEventListener("scroll",function(){h.update_page_idx();h.schedule_render(!0)},!1);[this.container,this.outline].forEach(function(a){a.addEventListener("click",h.link_handler.bind(h),!1)});this.initialize_radio_button();this.render()}},find_pages:function(){for(var a=[],b={},c=this.container.childNodes,
+e=0,h=c.length;e<h;++e){var d=c[e];d.nodeType===Node.ELEMENT_NODE&&d.classList.contains(CSS_CLASS_NAMES.page_frame)&&(d=new Page(d),a.push(d),b[d.num]=a.length-1)}this.pages=a;this.page_map=b},load_page:function(a,b,c){var e=this.pages;if(!(a>=e.length)&&(e=e[a],!e.loaded&&!this.pages_loading[a])){var e=e.page,h=e.getAttribute("data-page-url");if(h){this.pages_loading[a]=!0;var d=e.getElementsByClassName(this.config.loading_indicator_cls)[0];"undefined"===typeof d&&(d=this.loading_indicator.cloneNode(!0),
+d.classList.add("active"),e.appendChild(d));var f=this,g=new XMLHttpRequest;g.open("GET",h,!0);g.onload=function(){if(200===g.status||0===g.status){var b=document.createElement("div");b.innerHTML=g.responseText;for(var d=null,b=b.childNodes,e=0,h=b.length;e<h;++e){var p=b[e];if(p.nodeType===Node.ELEMENT_NODE&&p.classList.contains(CSS_CLASS_NAMES.page_frame)){d=p;break}}b=f.pages[a];f.container.replaceChild(d,b.page);b=new Page(d);f.pages[a]=b;b.hide();b.rescale(f.scale);disable_dragstart(d.getElementsByClassName(CSS_CLASS_NAMES.background_image));
+f.schedule_render(!1);c&&c(b)}delete f.pages_loading[a]};g.send(null)}void 0===b&&(b=this.config.preload_pages);0<--b&&(f=this,setTimeout(function(){f.load_page(a+1,b)},0))}},pre_hide_pages:function(){var a="@media screen{."+CSS_CLASS_NAMES.page_content_box+"{display:none;}}",b=document.createElement("style");b.styleSheet?b.styleSheet.cssText=a:b.appendChild(document.createTextNode(a));document.head.appendChild(b)},render:function(){for(var a=this.container,b=a.scrollTop,c=a.clientHeight,a=b-c,b=
+b+c+c,c=this.pages,e=0,h=c.length;e<h;++e){var d=c[e],f=d.page,g=f.offsetTop+f.clientTop,f=g+f.clientHeight;g<=b&&f>=a?d.loaded?d.show():this.load_page(e):d.hide()}},update_page_idx:function(){var a=this.pages,b=a.length;if(!(2>b)){for(var c=this.container,e=c.scrollTop,c=e+c.clientHeight,h=-1,d=b,f=d-h;1<f;){var g=h+Math.floor(f/2),f=a[g].page;f.offsetTop+f.clientTop+f.clientHeight>=e?d=g:h=g;f=d-h}this.first_page_idx=d;for(var g=h=this.cur_page_idx,k=0;d<b;++d){var f=a[d].page,l=f.offsetTop+f.clientTop,
+f=f.clientHeight;if(l>c)break;f=(Math.min(c,l+f)-Math.max(e,l))/f;if(d===h&&Math.abs(f-1)<=EPS){g=h;break}f>k&&(k=f,g=d)}this.cur_page_idx=g}},schedule_render:function(a){if(void 0!==this.render_timer){if(!a)return;clearTimeout(this.render_timer)}var b=this;this.render_timer=setTimeout(function(){delete b.render_timer;b.render()},this.config.render_timeout)},register_key_handler:function(){var a=this;window.addEventListener("DOMMouseScroll",function(b){if(b.ctrlKey){b.preventDefault();var c=a.container,
+e=c.getBoundingClientRect(),c=[b.clientX-e.left-c.clientLeft,b.clientY-e.top-c.clientTop];a.rescale(Math.pow(a.config.scale_step,b.detail),!0,c)}},!1);window.addEventListener("keydown",function(b){var c=!1,e=b.ctrlKey||b.metaKey,h=b.altKey;switch(b.keyCode){case 61:case 107:case 187:e&&(a.rescale(1/a.config.scale_step,!0),c=!0);break;case 173:case 109:case 189:e&&(a.rescale(a.config.scale_step,!0),c=!0);break;case 48:e&&(a.rescale(0,!1),c=!0);break;case 33:h?a.scroll_to(a.cur_page_idx-1):a.container.scrollTop-=
+a.container.clientHeight;c=!0;break;case 34:h?a.scroll_to(a.cur_page_idx+1):a.container.scrollTop+=a.container.clientHeight;c=!0;break;case 35:a.container.scrollTop=a.container.scrollHeight;c=!0;break;case 36:a.container.scrollTop=0,c=!0}c&&b.preventDefault()},!1)},rescale:function(a,b,c){var e=this.scale;this.scale=a=0===a?1:b?e*a:a;c||(c=[0,0]);b=this.container;c[0]+=b.scrollLeft;c[1]+=b.scrollTop;for(var h=this.pages,d=h.length,f=this.first_page_idx;f<d;++f){var g=h[f].page;if(g.offsetTop+g.clientTop>=
+c[1])break}g=f-1;0>g&&(g=0);var g=h[g].page,k=g.clientWidth,f=g.clientHeight,l=g.offsetLeft+g.clientLeft,m=c[0]-l;0>m?m=0:m>k&&(m=k);k=g.offsetTop+g.clientTop;c=c[1]-k;0>c?c=0:c>f&&(c=f);for(f=0;f<d;++f)h[f].rescale(a);b.scrollLeft+=m/e*a+g.offsetLeft+g.clientLeft-m-l;b.scrollTop+=c/e*a+g.offsetTop+g.clientTop-c-k;this.schedule_render(!0)},fit_width:function(){var a=this.cur_page_idx;this.rescale(this.container.clientWidth/this.pages[a].width(),!0);this.scroll_to(a)},fit_height:function(){var a=this.cur_page_idx;
+this.rescale(this.container.clientHeight/this.pages[a].height(),!0);this.scroll_to(a)},get_containing_page:function(a){for(;a;){if(a.nodeType===Node.ELEMENT_NODE&&a.classList.contains(CSS_CLASS_NAMES.page_frame)){a=get_page_number(a);var b=this.page_map;return a in b?this.pages[b[a]]:null}a=a.parentNode}return null},link_handler:function(a){var b=a.target,c=b.getAttribute("data-dest-detail");if(c){if(this.config.view_history_handler)try{var e=this.get_current_view_hash();window.history.replaceState(e,
+"","#"+e);window.history.pushState(c,"","#"+c)}catch(h){}this.navigate_to_dest(c,this.get_containing_page(b));a.preventDefault()}},navigate_to_dest:function(a,b){try{var c=JSON.parse(a)}catch(e){return}if(c instanceof Array){var h=c[0],d=this.page_map;if(h in d){for(var f=d[h],h=this.pages[f],d=2,g=c.length;d<g;++d){var k=c[d];if(!(null===k||"number"===typeof k))return}for(;6>c.length;)c.push(null);var g=b||this.pages[this.cur_page_idx],d=g.view_position(),d=transform(g.ictm,[d[0],g.height()-d[1]]),
+g=this.scale,l=[0,0],m=!0,k=!1,n=this.scale;switch(c[1]){case "XYZ":l=[null===c[2]?d[0]:c[2]*n,null===c[3]?d[1]:c[3]*n];g=c[4];if(null===g||0===g)g=this.scale;k=!0;break;case "Fit":case "FitB":l=[0,0];k=!0;break;case "FitH":case "FitBH":l=[0,null===c[2]?d[1]:c[2]*n];k=!0;break;case "FitV":case "FitBV":l=[null===c[2]?d[0]:c[2]*n,0];k=!0;break;case "FitR":l=[c[2]*n,c[5]*n],m=!1,k=!0}if(k){this.rescale(g,!1);var p=this,c=function(a){l=transform(a.ctm,l);m&&(l[1]=a.height()-l[1]);p.scroll_to(f,l)};h.loaded?
+c(h):(this.load_page(f,void 0,c),this.scroll_to(f))}}}},scroll_to:function(a,b){var c=this.pages;if(!(0>a||a>=c.length)){c=c[a].view_position();void 0===b&&(b=[0,0]);var e=this.container;e.scrollLeft+=b[0]-c[0];e.scrollTop+=b[1]-c[1]}},get_current_view_hash:function(){var a=[],b=this.pages[this.cur_page_idx];a.push(b.num);a.push("XYZ");var c=b.view_position(),c=transform(b.ictm,[c[0],b.height()-c[1]]);a.push(c[0]/this.scale);a.push(c[1]/this.scale);a.push(this.scale);return JSON.stringify(a)}};
+pdf2htmlEX.Viewer=Viewer;})();
+</script>
+<script>
+try{
+pdf2htmlEX.defaultViewer = new pdf2htmlEX.Viewer({});
+}catch(e){}
+</script>
+<title></title>
+</head>
+<body>
+<div id="sidebar">
+<div id="outline">
 </div>
-<div  
-class="centerline">   peima09@gmail.com</span>                             </div>
-<div  
-class="centerline">                        <span 
-class="cmr-10x-x-109">  </span>Waltham, Boston, MA 02451</span>                        </div>
+</div>
+<div id="page-container">
+<div id="pf1" class="pf w0 h0" data-page-no="1"><div class="pc pc1 w0 h0"><img class="bi x0 y0 w1 h1" alt="" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA/AAAAHsCAIAAAD6ttGQAAAACXBIWXMAABYlAAAWJQFJUiTwAAAIZUlEQVR42u3WMQ0AAAgEMcC/58cCK0kr4aarAgAA3uokKgAAwFMjAQAAGHoAAMDQAwAAhh4AAAw9AABg6AEAAEMPAAAYegAAMPQAAIChBwAADD0AABh6AADA0AMAAIYeAAAw9AAAYOgBAABDDwAAGHoAAMDQAwCAoQcAAAw9AABg6AEAwNADAACGHgAAMPQAAIChBwAAQw8AABh6AADA0AMAAIYeAAAMPQAAYOgBAABDDwAAhh4AADD0AACAoQcAAAw9AAAYegAAwNADAACGHgAADD0AAGDoAQAAQw8AABh6AAAw9AAAgKEHAAAMPQAAYOgBAMDQAwAAhh4AADD0AABg6AEAAEMPAAAYegAAwNADAIChBwAADD0AAGDoAQAAQw8AAIYeAAAw9AAAgKEHAABDDwAAGHoAAMDQAwAAhh4AAAw9AABg6AEAAEMPAAAYegAAMPQAAIChBwAADD0AABh6AADA0AMAAIYeAAAw9AAAYOgBAABDDwAAGHoAADD0AACAoQcAAAw9AABg6AEAwNADAACGHgAAMPQAAIChBwAAQw8AABh6AADA0AMAgKEHAAAMPQAAYOgBAABDDwAAhh4AADD0AACAoQcAAAw9AAAYegAAwNADAACGHgAADD0AAGDoAQAAQw8AABh6AAAw9AAAgKEHAAAMPQAAYOgBAMDQAwAAhh4AADD0AABg6AEAAEMPAAAYegAAwNADAIChBwAADD0AAGDoAQDA0AMAAIYeAAAw9AAAgKEHAABDDwAAGHoAAMDQAwAAhh4AAAw9AABg6AEAAEMPAACGHgAAMPQAAIChBwAADD0AABh6AADA0AMAAIYeAAAw9AAAYOgBAABDDwAAGHoAADD0AACAoQcAAAw9AABg6AEAwNADAACGHgAAMPQAAGDoAQAAQw8AABh6AADA0AMAgKEHAAAMPQAAYOgBAABDDwAAhh4AADD0AACAoQcAAEMPAAAYegAAwNADAACGHgAADD0AAGDoAQAAQw8AABh6AAAw9AAAgKEHAAAMPQAAGHoAAMDQAwAAhh4AADD0AABg6AEAAEMPAAAYegAAwNADAIChBwAADD0AAGDoAQDA0AMAAIYeAAAw9AAAgKEHAABDDwAAGHoAAMDQAwCAoQcAAAw9AABg6AEAAEMPAACGHgAAMPQAAIChBwAADD0AABh6AADA0AMAAIYeAAAMPQAAYOgBAABDDwAAGHoAADD0AACAoQcAAAw9AABg6AEAwNADAACGHgAAMPQAAGDoAQAAQw8AABh6AADA0AMAgKEHAAAMPQAAYOgBAABDDwAAhh4AADD0AACAoQcAAEMPAAAYegAAwNADAACGHgAADD0AAGDoAQAAQw8AAIYeAAAw9AAAgKEHAAAMPQAAGHoAAMDQAwAAhh4AADD0AABg6AEAAEMPAAAYegAAMPQAAIChBwAADD0AAGDoAQDA0AMAAIYeAAAw9AAAgKEHAABDDwAAGHoAAMDQAwCAoQcAAAw9AABg6AEAAEMPAACGHgAAMPQAAIChBwAAQy8BAAAYegAAwNADAACGHgAADD0AAGDoAQAAQw8AABh6AAAw9AAAgKEHAAAMPQAAGHoAAMDQAwAAhh4AADD0AABg6AEAAEMPAAAYegAAwNADAIChBwAADD0AAGDoAQDA0AMAAIYeAAAw9AAAgKEHAABDDwAAGHoAAMDQAwAAhh4AAAw9AABg6AEAAEMPAACGHgAAMPQAAIChBwAADD0AABh6AADA0AMAAIYeAAAMPQAAYOgBAABDDwAAGHoAADD0AACAoQcAAAw9AABg6AEAwNADAACGHgAAMPQAAGDoAQAAQw8AABh6AADA0AMAgKEHAAAMPQAAYOgBAABDDwAAhh4AADD0AACAoQcAAEMPAAAYegAAwNADAACGHgAADD0AAGDoAQAAQw8AABh6AAAw9AAAgKEHAAAMPQAAGHoAAMDQAwAAhh4AADD0AABg6AEAAEMPAAAYegAAMPQAAIChBwAADD0AAGDoAQDA0AMAAIYeAAAw9AAAgKEHAABDDwAAGHoAAMDQAwCAoQcAAAw9AABg6AEAAEMPAACGHgAAMPQAAIChBwAADD0AABh6AADA0AMAAIYeAAAMPQAAYOgBAABDDwAAGHoAADD0AACAoQcAAAw9AABg6AEAwNADAACGHgAAMPQAAGDoAQAAQw8AABh6AADA0AMAgKEHAAAMPQAAYOgBAMDQAwAAhh4AADD0AACAoQcAAEMPAAAYegAAwNADAACGHgAADD0AAGDoAQAAQw8AAIYeAAAw9AAAgKEHAAAMPQAAGHoAAMDQAwAAhh4AADD0AABg6AEAAEMPAAAYegAAMPQAAIChBwAADD0AAGDoAQDA0AMAAIYeAAAw9AAAYOgBAABDDwAAGHoAAMDQAwCAoQcAAAw9AABg6AEAAEMPAACGHgAAMPQAAIChBwAAQw8AABh6AADA0AMAAIYeAAAMPQAAYOgBAABDDwAAGHoAADD0AACAoQcAAAw9AAAYegAAwNADAACGHgAAMPQAAGDoAQAAQw8AABh6AADA0AMAgKEHAAAMPQAAYOgBAMDQAwAAhh4AADD0AACAoQcAAEMPAAAYegAAwNADAIChBwAADD0AAGDoAQAAQw8AAIYeAAAw9AAAgKEHAAAMPQAAGHoAAMDQAwAAhh4AAAw9AABg6AEAAEMPAAAYegAAMPQAAIChBwAADD0AAGDoAQDA0AMAAIYeAAAw9AAAYOgBAABDDwAAGHoAAMDQAwCAoQcAAAw9AABg6AEAAEMPAACGHgAAMPQAAIChBwAAQw8AABh6AADA0AMAAIYeAAAMPQAAYOgBAABDDwAAhh4AADD0AAAAAADA0QJ4GgbRxFnSRwAAAABJRU5ErkJggg=="/><div class="t m0 x1 h2 y1 ff1 fs0 fc0 sc0 ls0 ws0">PEI<span class="_ _0"> </span>MA</div><div class="t m0 x2 h3 y2 ff2 fs1 fc0 sc0 ls0 ws0">(315)<span class="_ _1"> </span><span class="ff3">·<span class="_ _1"> </span></span>382<span class="_ _1"> </span><span class="ff3">·<span class="_ _1"> </span></span>4734<span class="_ _1"> </span><span class="ff3">⋄<span class="_ _1"> </span></span>p<span class="_ _2"></span>eima09@gmail.com</div><div class="t m0 x3 h3 y3 ff2 fs1 fc0 sc0 ls0 ws0">4011<span class="_ _1"> </span>Stearns<span class="_ _1"> </span>Hill<span class="_ _1"> </span>Rd<span class="_ _1"> </span><span class="ff3">⋄<span class="_ _1"> </span></span>W<span class="_ _3"></span>altham,<span class="_ _1"> </span>MA<span class="_ _1"> </span>02451</div><div class="t m0 x0 h4 y4 ff4 fs1 fc0 sc0 ls0 ws0">SUMMAR<span class="_ _3"></span>Y</div><div class="t m0 x4 h4 y5 ff4 fs1 fc0 sc0 ls0 ws0">V<span class="_ _3"></span>olun<span class="_ _4"></span>teer<span class="_ _5"> </span>and<span class="_ _5"> </span>Professional<span class="_ _5"> </span>Exp<span class="_ _2"></span>eriences</div><div class="t m0 x5 h3 y6 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Curren<span class="_ _4"></span>tly<span class="_ _1"> </span>working<span class="_ _1"> </span>for<span class="_ _1"> </span>a<span class="_ _1"> </span>w<span class="_ _4"></span>orld<span class="_ _1"> </span>top<span class="_ _1"> </span>ten<span class="_ _1"> </span>pharmaceutical<span class="_ _1"> </span>compan<span class="_ _4"></span>y<span class="_ _1"> </span>(AstraZeneca).</span></div><div class="t m0 x5 h3 y7 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">W<span class="_ _3"></span>orking<span class="_ _1"> </span>exp<span class="_ _2"></span>eriences<span class="_ _1"> </span>as<span class="_ _1"> </span>a<span class="_ _1"> </span>professional<span class="_ _1"> </span>in<span class="_ _1"> </span>sev<span class="_ _4"></span>eral<span class="_ _1"> </span>biopharma<span class="_ _1"> </span>and<span class="_ _1"> </span>pharmaceutical<span class="_ _1"> </span>service<span class="_ _1"> </span>companies.</span></div><div class="t m0 x5 h3 y8 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">V<span class="_ _3"></span>olun<span class="_ _4"></span>teer<span class="_ _1"> </span>exp<span class="_ _2"></span>eriences<span class="_ _1"> </span>as<span class="_ _1"> </span>oﬃcer<span class="_ _1"> </span>or<span class="_ _1"> </span>co<span class="_ _2"></span>ordinator<span class="_ _1"> </span>for<span class="_ _1"> </span>tw<span class="_ _4"></span>o<span class="_ _1"> </span>non-proﬁt<span class="_ _1"> </span>organizations.</span></div><div class="t m0 x5 h3 y9 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Strong<span class="_ _1"> </span>exp<span class="_ _2"></span>erience<span class="_ _1"> </span>in<span class="_ _1"> </span>w<span class="_ _4"></span>eb<span class="_ _1"> </span>programming<span class="_ _1"> </span>and<span class="_ _1"> </span>data<span class="_ _1"> </span>analytics.</span></div><div class="t m0 x5 h3 ya ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">PhD<span class="_ _1"> </span>in<span class="_ _1"> </span>Chemistry<span class="_ _1"> </span>and<span class="_ _1"> </span>Master<span class="_ _1"> </span>in<span class="_ _1"> </span>Applied<span class="_ _1"> </span>Statistics.</span></div><div class="t m0 x5 h3 yb ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Aim<span class="_ _1"> </span>at<span class="_ _1"> </span>p<span class="_ _2"></span>ersonalized<span class="_ _1"> </span>medicine,<span class="_ _1"> </span>precision<span class="_ _1"> </span>medicine<span class="_ _1"> </span>and<span class="_ _1"> </span>health-care<span class="_ _1"> </span>big<span class="_ _1"> </span>data.</span></div><div class="t m0 x4 h4 yc ff4 fs1 fc0 sc0 ls0 ws0">P<span class="_ _4"></span>ersonal<span class="_ _5"> </span>Skills</div><div class="t m0 x5 h3 yd ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Go<span class="_ _2"></span>o<span class="_ _2"></span>d<span class="_ _1"> </span>attention<span class="_ _7"> </span>to<span class="_ _1"> </span>detail<span class="_ _7"> </span>&amp;<span class="_ _1"> </span>ability<span class="_ _7"> </span>to<span class="_ _1"> </span>work<span class="_ _7"> </span>in<span class="_ _1"> </span>a<span class="_ _1"> </span>pressurised<span class="_ _1"> </span>time<span class="_ _1"> </span>sensitive<span class="_ _7"> </span>environmen<span class="_ _4"></span>t.</span></div><div class="t m0 x5 h3 ye ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Excellen<span class="_ _4"></span>t<span class="_ _1"> </span>organizational<span class="_ _1"> </span>and<span class="_ _1"> </span>interpersonal<span class="_ _1"> </span>communication<span class="_ _7"> </span>skills.</span></div><div class="t m0 x5 h3 yf ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Go<span class="_ _2"></span>o<span class="_ _2"></span>d<span class="_ _1"> </span>time<span class="_ _1"> </span>management<span class="_ _7"> </span>and<span class="_ _7"> </span>multiple<span class="_ _7"> </span>complex<span class="_ _1"> </span>tasks-handling.</span></div><div class="t m0 x5 h3 y10 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Com<span class="_ _4"></span>bine<span class="_ _5"> </span>patience,<span class="_ _8"> </span>determination,<span class="_ _5"> </span>and<span class="_ _5"> </span>p<span class="_ _2"></span>ersistence<span class="_ _5"> </span>to<span class="_ _5"> </span>solve<span class="_ _5"> </span>problems<span class="_ _5"> </span>using<span class="_ _5"> </span>v<span class="_ _3"></span>arious<span class="_ _5"> </span>skills<span class="_ _5"> </span>such<span class="_ _5"> </span>as<span class="_ _5"> </span>ana-</span></div><div class="t m0 x4 h3 y11 ff2 fs1 fc0 sc0 ls0 ws0">lytical<span class="_ _7"> </span>and<span class="_ _1"> </span>critical<span class="_ _1"> </span>thinking,<span class="_ _1"> </span>logical<span class="_ _1"> </span>and<span class="_ _1"> </span>metho<span class="_ _9"></span>dical<span class="_ _7"> </span>approach,<span class="_ _7"> </span>lateral<span class="_ _1"> </span>thinking.</div><div class="t m0 x0 h4 y12 ff4 fs1 fc0 sc0 ls0 ws0">W<span class="_ _4"></span>ORK<span class="_ _5"> </span>EXPERIENCE</div><div class="t m0 x4 h3 y13 ff4 fs1 fc0 sc0 ls0 ws0">AstraZeneca,<span class="_ _5"> </span>Boston<span class="_ _a"> </span><span class="ff2">July<span class="_ _7"> </span>2015<span class="_ _1"> </span>—<span class="_ _1"> </span>Present</span></div><div class="t m0 x4 h3 y14 ff2 fs1 fc0 sc0 ls0 ws0">Role:<span class="_ _8"> </span>Quantitativ<span class="_ _4"></span>e<span class="_ _7"> </span>Clinical<span class="_ _b"> </span>Pharmacology<span class="_ _b"> </span>Programmer<span class="_ _b"> </span>(Senior<span class="_ _7"> </span>Sp<span class="_ _2"></span>ecialist<span class="_ _b"> </span>Programming),<span class="_ _7"> </span>Quantitativ<span class="_ _4"></span>e</div><div class="t m0 x4 h3 y15 ff2 fs1 fc0 sc0 ls0 ws0">Clinical<span class="_ _7"> </span>Pharmacology<span class="_ _4"></span>,<span class="_ _7"> </span>Early<span class="_ _1"> </span>Clinical<span class="_ _1"> </span>Dev<span class="_ _4"></span>elopment,<span class="_ _7"> </span>Innov<span class="_ _3"></span>ative<span class="_ _7"> </span>Medicine</div><div class="t m0 x5 h3 y16 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Create<span class="_ _b"> </span>input<span class="_ _b"> </span>data<span class="_ _b"> </span>ﬁles<span class="_ _b"> </span>for<span class="_ _b"> </span>NONMEM<span class="_ _b"> </span>soft<span class="_ _4"></span>ware<span class="_ _b"> </span>whic<span class="_ _4"></span>h<span class="_ _b"> </span>is<span class="_ _b"> </span>used<span class="_ _b"> </span>to<span class="_ _b"> </span>conduct<span class="_ _b"> </span>a<span class="_ _b"> </span>population<span class="_ _b"> </span>PK<span class="_ _b"> </span>or<span class="_ _b"> </span>p<span class="_ _2"></span>opulation</span></div><div class="t m0 x4 h3 y17 ff2 fs1 fc0 sc0 ls0 ws0">PK<span class="_ _c"> </span>/<span class="_ _c"> </span>PD<span class="_ _c"> </span>(Phamo<span class="_ _2"></span>cometrics)<span class="_ _c"> </span>analysis<span class="_ _c"> </span>using<span class="_ _c"> </span>UNIX<span class="_ _c"> </span>SAS<span class="_ _c"> </span>softw<span class="_ _4"></span>are<span class="_ _c"> </span>to<span class="_ _c"> </span>dev<span class="_ _4"></span>elop<span class="_ _c"> </span>a<span class="_ _c"> </span>program<span class="_ _c"> </span>based<span class="_ _c"> </span>on<span class="_ _c"> </span>provided</div><div class="t m0 x4 h3 y18 ff2 fs1 fc0 sc0 ls0 ws0">programming<span class="_ _7"> </span>sp<span class="_ _9"></span>eciﬁcations.</div><div class="t m0 x5 h3 y19 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Program<span class="_ _7"> </span>and<span class="_ _1"> </span>plan<span class="_ _1"> </span>the<span class="_ _1"> </span>integration<span class="_ _7"> </span>of<span class="_ _1"> </span>databases<span class="_ _1"> </span>from<span class="_ _1"> </span>multiple<span class="_ _7"> </span>studies<span class="_ _1"> </span>or<span class="_ _1"> </span>sources.</span></div><div class="t m0 x5 h3 y1a ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Lead<span class="_ _c"> </span>or<span class="_ _c"> </span>assist<span class="_ _d"> </span>in<span class="_ _d"> </span>the<span class="_ _c"> </span>application<span class="_ _c"> </span>of<span class="_ _d"> </span>computer<span class="_ _c"> </span>science<span class="_ _c"> </span>and<span class="_ _d"> </span>information<span class="_ _c"> </span>technology<span class="_ _d"> </span>metho<span class="_ _2"></span>ds<span class="_ _d"> </span>to<span class="_ _c"> </span>provide<span class="_ _d"> </span>the</span></div><div class="t m0 x4 h3 y1b ff2 fs1 fc0 sc0 ls0 ws0">tec<span class="_ _4"></span>hnical<span class="_ _7"> </span>comp<span class="_ _2"></span>onents<span class="_ _b"> </span>that<span class="_ _7"> </span>supp<span class="_ _2"></span>ort<span class="_ _7"> </span>all<span class="_ _7"> </span>asp<span class="_ _2"></span>ects<span class="_ _7"> </span>of<span class="_ _7"> </span>pharmacology<span class="_ _7"> </span>clinical<span class="_ _7"> </span>developmen<span class="_ _4"></span>t<span class="_ _b"> </span>pro<span class="_ _2"></span>cess,<span class="_ _1"> </span>including</div><div class="t m0 x4 h3 y1c ff2 fs1 fc0 sc0 ls0 ws0">clinical<span class="_ _7"> </span>developmen<span class="_ _4"></span>t<span class="_ _1"> </span>plans<span class="_ _1"> </span>and<span class="_ _1"> </span>scientiﬁc<span class="_ _7"> </span>utilization<span class="_ _1"> </span>data.</div><div class="t m0 x5 h3 y1d ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Pro<span class="_ _4"></span>vide<span class="_ _8"> </span>strategic<span class="_ _8"> </span>input<span class="_ _8"> </span>and<span class="_ _8"> </span>leadership<span class="_ _8"> </span>to<span class="_ _8"> </span>the<span class="_ _8"> </span>delivery<span class="_ _5"> </span>of<span class="_ _8"> </span>all<span class="_ _8"> </span>technical<span class="_ _5"> </span>programming<span class="_ _8"> </span>and<span class="_ _8"> </span>information</span></div><div class="t m0 x4 h3 y1e ff2 fs1 fc0 sc0 ls0 ws0">comp<span class="_ _2"></span>onen<span class="_ _4"></span>ts<span class="_ _1"> </span>of<span class="_ _1"> </span>deliverables.</div><div class="t m0 x5 h3 y1f ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Ov<span class="_ _4"></span>ersee<span class="_ _8"> </span>the<span class="_ _8"> </span>qualit<span class="_ _4"></span>y<span class="_ _8"> </span>of<span class="_ _8"> </span>all<span class="_ _8"> </span>deliv<span class="_ _4"></span>erables,<span class="_ _e"> </span>holding<span class="_ _5"> </span>partners<span class="_ _8"> </span>and<span class="_ _8"> </span>providers<span class="_ _5"> </span>accoun<span class="_ _4"></span>table<span class="_ _8"> </span>for<span class="_ _8"> </span>the<span class="_ _8"> </span>qualit<span class="_ _4"></span>y<span class="_ _8"> </span>of</span></div><div class="t m0 x4 h3 y20 ff2 fs1 fc0 sc0 ls0 ws0">their<span class="_ _7"> </span>deliverable.</div><div class="t m0 x5 h3 y21 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Lead<span class="_ _5"> </span>programming<span class="_ _1"> </span>supp<span class="_ _2"></span>ort<span class="_ _5"> </span>for<span class="_ _5"> </span>deliv<span class="_ _4"></span>erables<span class="_ _5"> </span>to<span class="_ _1"> </span>the<span class="_ _5"> </span>regulatory<span class="_ _5"> </span>submissions<span class="_ _1"> </span>including<span class="_ _5"> </span>deliv<span class="_ _4"></span>ery<span class="_ _5"> </span>of<span class="_ _1"> </span>NON-</span></div><div class="t m0 x4 h3 y22 ff2 fs1 fc0 sc0 ls0 ws0">MEM<span class="_ _7"> </span>data.</div><div class="t m0 x5 h3 y23 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Iden<span class="_ _4"></span>tify<span class="_ _1"> </span>opp<span class="_ _2"></span>ortunities<span class="_ _1"> </span>to<span class="_ _1"> </span>improv<span class="_ _4"></span>e<span class="_ _1"> </span>the<span class="_ _1"> </span>metho<span class="_ _2"></span>dology<span class="_ _1"> </span>and<span class="_ _1"> </span>pro<span class="_ _4"></span>vide<span class="_ _1"> </span>practical<span class="_ _1"> </span>solutions<span class="_ _1"> </span>for<span class="_ _1"> </span>problems.</span></div><div class="t m0 x5 h3 y24 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Con<span class="_ _4"></span>tribute<span class="_ _1"> </span>to<span class="_ _1"> </span>the<span class="_ _1"> </span>developmen<span class="_ _4"></span>t<span class="_ _7"> </span>of<span class="_ _1"> </span>b<span class="_ _9"></span>est<span class="_ _7"> </span>practice<span class="_ _1"> </span>to<span class="_ _1"> </span>improv<span class="_ _4"></span>e<span class="_ _1"> </span>quality<span class="_ _3"></span>,<span class="_ _7"> </span>eﬃciency<span class="_ _1"> </span>and<span class="_ _1"> </span>eﬀectiv<span class="_ _4"></span>eness.</span></div><div class="t m0 x4 h3 y25 ff4 fs1 fc0 sc0 ls0 ws0">P<span class="_ _3"></span>AREXEL<span class="_ _5"> </span>In<span class="_ _4"></span>ternational,<span class="_ _5"> </span>Boston<span class="_ _f"> </span><span class="ff2">August<span class="_ _7"> </span>2014<span class="_ _1"> </span>—<span class="_ _1"> </span>July<span class="_ _1"> </span>2015</span></div><div class="t m0 x4 h3 y26 ff2 fs1 fc0 sc0 ls0 ws0">Role:<span class="_ _e"> </span>Statistical<span class="_ _1"> </span>Programmer</div><div class="t m0 x5 h3 y27 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Resp<span class="_ _2"></span>onsible<span class="_ _d"> </span>for<span class="_ _c"> </span>imp<span class="_ _2"></span>ort/exp<span class="_ _9"></span>ort<span class="_ _d"> </span>programming<span class="_ _c"> </span>sp<span class="_ _2"></span>eciﬁcation<span class="_ _c"> </span>developmen<span class="_ _4"></span>t,<span class="_ _c"> </span>test<span class="_ _c"> </span>data<span class="_ _c"> </span>creation<span class="_ _c"> </span>and<span class="_ _c"> </span>test<span class="_ _d"> </span>data</span></div><div class="t m0 x4 h3 y28 ff2 fs1 fc0 sc0 ls0 ws0">en<span class="_ _4"></span>try<span class="_ _3"></span>,<span class="_ _6"> </span>imp<span class="_ _2"></span>ort/exp<span class="_ _9"></span>ort<span class="_ _10"> </span>programming<span class="_ _10"> </span>functional<span class="_ _10"> </span>testing,<span class="_ _6"> </span>as<span class="_ _10"> </span>w<span class="_ _4"></span>ell<span class="_ _10"> </span>as<span class="_ _10"> </span>mapping<span class="_ _10"> </span>sp<span class="_ _2"></span>eciﬁcations<span class="_ _6"> </span>to<span class="_ _10"> </span>support</div><div class="t m0 x4 h3 y29 ff2 fs1 fc0 sc0 ls0 ws0">relev<span class="_ _4"></span>an<span class="_ _4"></span>t<span class="_ _7"> </span>data<span class="_ _1"> </span>standards</div><div class="t m0 x5 h3 y2a ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Dev<span class="_ _4"></span>elop<span class="_ _8"> </span>SAS<span class="_ _5"> </span>listings,<span class="_ _8"> </span>SAS<span class="_ _8"> </span>macros,<span class="_ _8"> </span>Sp<span class="_ _2"></span>onsor<span class="_ _8"> </span>Standard<span class="_ _5"> </span>mapping,<span class="_ _e"> </span>SDTM<span class="_ _5"> </span>mapping,<span class="_ _8"> </span>imp<span class="_ _9"></span>ort<span class="_ _5"> </span>and<span class="_ _8"> </span>exp<span class="_ _2"></span>ort</span></div><div class="t m0 x4 h3 y2b ff2 fs1 fc0 sc0 ls0 ws0">programs<span class="_ _7"> </span>pro<span class="_ _9"></span>cessing<span class="_ _1"> </span>for<span class="_ _1"> </span>v<span class="_ _4"></span>endor<span class="_ _1"> </span>data</div><div class="t m0 x6 h3 y2c ff2 fs1 fc0 sc0 ls0 ws0">P<span class="_ _4"></span>age<span class="_ _1"> </span>1<span class="_ _e"> </span>of<span class="_ _1"> </span>3</div></div><div class="pi" data-data='{"ctm":[1.300000,0.000000,0.000000,1.300000,0.000000,0.000000]}'></div></div>
+<div id="pf2" class="pf w0 h0" data-page-no="2"><div class="pc pc2 w0 h0"><img class="bi x0 y2d w1 h5" alt="" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA/AAAAABCAIAAAD2G9J4AAAACXBIWXMAABYlAAAWJQFJUiTwAAAAGklEQVRIx+3BAQ0AAADCoPdPbQ43oAAAgFsDC9EAATErygwAAAAASUVORK5CYII="/><div class="t m0 x5 h3 y2e ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Use<span class="_ _5"> </span>eﬃcien<span class="_ _4"></span>t<span class="_ _1"> </span>programming<span class="_ _5"> </span>tec<span class="_ _4"></span>hniques<span class="_ _5"> </span>to<span class="_ _1"> </span>pro<span class="_ _2"></span>duce<span class="_ _5"> </span>and/or<span class="_ _5"> </span>QC<span class="_ _1"> </span>CDISC<span class="_ _5"> </span>or<span class="_ _1"> </span>Sp<span class="_ _2"></span>onsor-sp<span class="_ _2"></span>eciﬁc<span class="_ _5"> </span>datasets<span class="_ _11"> </span>and</span></div><div class="t m0 x4 h3 y2f ff2 fs1 fc0 sc0 ls0 ws0">oﬄine<span class="_ _7"> </span>listings</div><div class="t m0 x5 h3 y30 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Dev<span class="_ _4"></span>elop<span class="_ _11"> </span>wider<span class="_ _1"> </span>knowledge<span class="_ _7"> </span>of<span class="_ _11"> </span>SAS<span class="_ _1"> </span>and<span class="_ _11"> </span>other<span class="_ _1"> </span>relev<span class="_ _4"></span>an<span class="_ _4"></span>t<span class="_ _11"> </span>programming<span class="_ _1"> </span>languages<span class="_ _1"> </span>and<span class="_ _11"> </span>pro<span class="_ _2"></span>cesses<span class="_ _11"> </span>within<span class="_ _1"> </span>the</span></div><div class="t m0 x4 h3 y31 ff2 fs1 fc0 sc0 ls0 ws0">GR<span class="_ _4"></span>O,<span class="_ _1"> </span>Biostatistics,<span class="_ _1"> </span>and<span class="_ _1"> </span>Medical<span class="_ _1"> </span>arenas</div><div class="t m0 x5 h3 y32 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Chec<span class="_ _4"></span>k<span class="_ _1"> </span>own<span class="_ _7"> </span>work<span class="_ _7"> </span>in<span class="_ _1"> </span>an<span class="_ _1"> </span>ongoing<span class="_ _1"> </span>w<span class="_ _4"></span>ay<span class="_ _7"> </span>to<span class="_ _1"> </span>ensure<span class="_ _1"> </span>ﬁrst-time<span class="_ _1"> </span>quality</span></div><div class="t m0 x4 h3 y33 ff4 fs1 fc0 sc0 ls0 ws0">DUCK<span class="_ _5"> </span>FLA<span class="_ _3"></span>TS<span class="_ _11"> </span>Pharma,<span class="_ _5"> </span>LLC,<span class="_ _5"> </span>New<span class="_ _5"> </span>Y<span class="_ _3"></span>ork<span class="_ _12"> </span><span class="ff2">No<span class="_ _4"></span>vem<span class="_ _4"></span>b<span class="_ _2"></span>er<span class="_ _1"> </span>2013<span class="_ _1"> </span>—<span class="_ _1"> </span>August<span class="_ _1"> </span>2014</span></div><div class="t m0 x4 h3 y34 ff2 fs1 fc0 sc0 ls0 ws0">Role:<span class="_ _e"> </span>Statistician/SAS<span class="_ _1"> </span>programmer</div><div class="t m0 x5 h3 y35 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Pro<span class="_ _4"></span>viding<span class="_ _1"> </span>programming<span class="_ _1"> </span>supp<span class="_ _2"></span>ort<span class="_ _1"> </span>on<span class="_ _1"> </span>Phase<span class="_ _1"> </span>I<span class="_ _1"> </span>and<span class="_ _1"> </span>I<span class="_ _2"></span>I<span class="_ _1"> </span>studies.</span></div><div class="t m0 x5 h3 y36 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">QC<span class="_ _7"> </span>SDTM<span class="_ _1"> </span>datasets<span class="_ _1"> </span>by<span class="_ _7"> </span>following<span class="_ _7"> </span>CDISC<span class="_ _1"> </span>SDTM<span class="_ _1"> </span>Implementation<span class="_ _7"> </span>Guideline<span class="_ _1"> </span>and<span class="_ _1"> </span>review<span class="_ _1"> </span>Data<span class="_ _1"> </span>Sp<span class="_ _2"></span>ec.</span></div><div class="t m0 x5 h3 y37 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Creating<span class="_ _7"> </span>T<span class="_ _4"></span>ables,<span class="_ _7"> </span>Listings,<span class="_ _1"> </span>and<span class="_ _1"> </span>Figures<span class="_ _1"> </span>output<span class="_ _1"> </span>p<span class="_ _2"></span>er<span class="_ _1"> </span>Statistical<span class="_ _1"> </span>Analysis<span class="_ _1"> </span>Plan<span class="_ _1"> </span>(SAP).</span></div><div class="t m0 x5 h3 y38 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">P<span class="_ _4"></span>erforming<span class="_ _1"> </span>parallel<span class="_ _1"> </span>programming<span class="_ _1"> </span>QC<span class="_ _1"> </span>for<span class="_ _1"> </span>T<span class="_ _3"></span>ables<span class="_ _1"> </span>and<span class="_ _1"> </span>Listings.</span></div><div class="t m0 x5 h3 y39 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Assisting<span class="_ _7"> </span>study<span class="_ _1"> </span>design,<span class="_ _1"> </span>Population<span class="_ _7"> </span>PK/PD<span class="_ _1"> </span>mo<span class="_ _2"></span>deling<span class="_ _1"> </span>and<span class="_ _1"> </span>particular<span class="_ _1"> </span>QT<span class="_ _1"> </span>(ECG)<span class="_ _1"> </span>data<span class="_ _1"> </span>analysis.</span></div><div class="t m0 x5 h3 y3a ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Calculating<span class="_ _7"> </span>sample<span class="_ _1"> </span>size,<span class="_ _1"> </span>managing<span class="_ _1"> </span>database,<span class="_ _1"> </span>comparing<span class="_ _1"> </span>end-p<span class="_ _9"></span>oin<span class="_ _4"></span>ts<span class="_ _1"> </span>for<span class="_ _1"> </span>Pre-clinical<span class="_ _1"> </span>trials<span class="_ _1"> </span>studies.</span></div><div class="t m0 x5 h3 y3b ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">W<span class="_ _3"></span>orking<span class="_ _1"> </span>with<span class="_ _1"> </span>Data<span class="_ _1"> </span>managemen<span class="_ _4"></span>t<span class="_ _1"> </span>and<span class="_ _1"> </span>other<span class="_ _1"> </span>function<span class="_ _1"> </span>groups<span class="_ _1"> </span>for<span class="_ _1"> </span>data<span class="_ _1"> </span>chec<span class="_ _4"></span>king<span class="_ _7"> </span>and<span class="_ _1"> </span>problem<span class="_ _1"> </span>solving.</span></div><div class="t m0 x5 h3 y3c ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Dev<span class="_ _4"></span>eloping<span class="_ _1"> </span>utility<span class="_ _7"> </span>Macros<span class="_ _1"> </span>to<span class="_ _1"> </span>improv<span class="_ _4"></span>e<span class="_ _7"> </span>programming<span class="_ _1"> </span>eﬃciency<span class="_ _1"> </span>and<span class="_ _1"> </span>consistency<span class="_ _3"></span>.</span></div><div class="t m0 x5 h3 y3d ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Go<span class="_ _2"></span>o<span class="_ _2"></span>d<span class="_ _8"> </span>understanding<span class="_ _e"> </span>and<span class="_ _e"> </span>kno<span class="_ _4"></span>wledge<span class="_ _e"> </span>of<span class="_ _8"> </span>the<span class="_ _e"> </span>drug<span class="_ _e"> </span>disco<span class="_ _4"></span>very/dev<span class="_ _4"></span>elopmen<span class="_ _4"></span>t<span class="_ _e"> </span>life<span class="_ _8"> </span>cycle<span class="_ _e"> </span>and<span class="_ _e"> </span>regulatory<span class="_ _8"> </span>re-</span></div><div class="t m0 x4 h3 y3e ff2 fs1 fc0 sc0 ls0 ws0">quiremen<span class="_ _4"></span>ts.<span class="_ _10"> </span>Review<span class="_ _4"></span>ed<span class="_ _1"> </span>v<span class="_ _4"></span>arious<span class="_ _7"> </span>sections<span class="_ _1"> </span>of<span class="_ _1"> </span>CTD<span class="_ _1"> </span>for<span class="_ _1"> </span>clients.</div><div class="t m0 x4 h3 y3f ff4 fs1 fc0 sc0 ls0 ws0">Syracuse<span class="_ _5"> </span>Univ<span class="_ _4"></span>ersity<span class="_ _13"></span>,<span class="_ _5"> </span>New<span class="_ _5"> </span>Y<span class="_ _3"></span>ork<span class="_ _14"> </span><span class="ff2">Jan<span class="_ _4"></span>uary<span class="_ _1"> </span>2010<span class="_ _1"> </span>—<span class="_ _1"> </span>May<span class="_ _7"> </span>2013</span></div><div class="t m0 x4 h3 y40 ff2 fs1 fc0 sc0 ls0 ws0">Role:<span class="_ _e"> </span>Research<span class="_ _7"> </span>Analyst</div><div class="t m0 x5 h3 y41 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Design<span class="_ _11"> </span>of<span class="_ _5"> </span>exp<span class="_ _2"></span>eriment<span class="_ _11"> </span>and<span class="_ _5"> </span>developed<span class="_ _5"> </span>Statistical<span class="_ _5"> </span>Analysis<span class="_ _5"> </span>Plan<span class="_ _5"> </span>for<span class="_ _11"> </span>pro<span class="_ _9"></span>ducts<span class="_ _11"> </span>characterization<span class="_ _11"> </span>and<span class="_ _5"> </span>data</span></div><div class="t m0 x4 h3 y42 ff2 fs1 fc0 sc0 ls0 ws0">analysis.</div><div class="t m0 x5 h3 y43 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">P<span class="_ _4"></span>erformed<span class="_ _1"> </span>statistical<span class="_ _1"> </span>mo<span class="_ _2"></span>deling<span class="_ _1"> </span>using<span class="_ _1"> </span>SAS<span class="_ _1"> </span>9.2<span class="_ _1"> </span>and<span class="_ _1"> </span>R<span class="_ _1"> </span>2.13.0</span></div><div class="t m0 x5 h3 y44 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Prepared<span class="_ _7"> </span>statistical<span class="_ _1"> </span>analysis<span class="_ _1"> </span>rep<span class="_ _9"></span>orts<span class="_ _1"> </span>using<span class="_ _1"> </span>SAS<span class="_ _1"> </span>and<span class="_ _7"> </span>do<span class="_ _9"></span>cumen<span class="_ _4"></span>tation<span class="_ _1"> </span>for<span class="_ _1"> </span>publication<span class="_ _1"> </span>submission.</span></div><div class="t m0 x0 h4 y45 ff4 fs1 fc0 sc0 ls0 ws0">V<span class="_ _4"></span>OLUNTEER<span class="_ _5"> </span>EXPERIENCE</div><div class="t m0 x4 h3 y46 ff4 fs1 fc0 sc0 ls0 ws0">SAP<span class="_ _13"></span>A-NE,<span class="_ _5"> </span>Boston<span class="_ _15"> </span><span class="ff2">Jun<span class="_ _7"> </span>2016<span class="_ _1"> </span>—<span class="_ _1"> </span>Present</span></div><div class="t m0 x4 h3 y47 ff2 fs1 fc0 sc0 ls0 ws0">Role:<span class="_ _e"> </span>Executive<span class="_ _7"> </span>Director<span class="_ _16"> </span>Sino-American<span class="_ _1"> </span>Pharmaceutical<span class="_ _7"> </span>Professionals<span class="_ _1"> </span>Asso<span class="_ _9"></span>ciation<span class="_ _1"> </span>(SAP<span class="_ _3"></span>A)<span class="_ _1"> </span>at<span class="_ _1"> </span>New</div><div class="t m0 x4 h3 y48 ff2 fs1 fc0 sc0 ls0 ws0">England</div><div class="t m0 x5 h3 y49 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">P<span class="_ _4"></span>articipate<span class="_ _5"> </span>in<span class="_ _5"> </span>the<span class="_ _5"> </span>b<span class="_ _2"></span>oard<span class="_ _5"> </span>mem<span class="_ _4"></span>b<span class="_ _2"></span>er<span class="_ _5"> </span>regular<span class="_ _5"> </span>meetings.<span class="_ _17"> </span>In<span class="_ _4"></span>volv<span class="_ _4"></span>ed<span class="_ _11"> </span>in<span class="_ _5"> </span>the<span class="_ _5"> </span>planning<span class="_ _5"> </span>and<span class="_ _5"> </span>co<span class="_ _2"></span>ordinating<span class="_ _5"> </span>of<span class="_ _5"> </span>the</span></div><div class="t m0 x4 h3 y4a ff2 fs1 fc0 sc0 ls0 ws0">organization<span class="_ _7"> </span>even<span class="_ _4"></span>ts<span class="_ _1"> </span>such<span class="_ _7"> </span>as<span class="_ _1"> </span>mark<span class="_ _4"></span>eting<span class="_ _1"> </span>and<span class="_ _1"> </span>promoting<span class="_ _1"> </span>even<span class="_ _4"></span>ts<span class="_ _1"> </span>for<span class="_ _7"> </span>several<span class="_ _7"> </span>pharmaceutical<span class="_ _1"> </span>companies.</div><div class="t m0 x5 h3 y4b ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Pro<span class="_ _4"></span>vide<span class="_ _1"> </span>volun<span class="_ _4"></span>teer<span class="_ _7"> </span>services<span class="_ _1"> </span>for<span class="_ _1"> </span>several<span class="_ _7"> </span>even<span class="_ _4"></span>ts.</span></div><div class="t m0 x4 h3 y4c ff4 fs1 fc0 sc0 ls0 ws0">SAP<span class="_ _13"></span>A-NE,<span class="_ _5"> </span>Boston<span class="_ _18"> </span><span class="ff2">Jan<span class="_ _7"> </span>2016<span class="_ _1"> </span>—<span class="_ _1"> </span>Jun<span class="_ _1"> </span>2016</span></div><div class="t m0 x4 h3 y4d ff2 fs1 fc0 sc0 ls0 ws0">Role:<span class="_ _8"> </span>Co<span class="_ _2"></span>ordinator<span class="_ _19"> </span>Sino-American<span class="_ _b"> </span>Pharmaceutical<span class="_ _7"> </span>Professionals<span class="_ _7"> </span>Asso<span class="_ _2"></span>ciation<span class="_ _b"> </span>(SAP<span class="_ _3"></span>A)<span class="_ _7"> </span>at<span class="_ _7"> </span>New<span class="_ _b"> </span>England</div><div class="t m0 x5 h3 y4e ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">In<span class="_ _4"></span>volv<span class="_ _4"></span>ed<span class="_ _7"> </span>in<span class="_ _1"> </span>the<span class="_ _1"> </span>planning<span class="_ _1"> </span>and<span class="_ _1"> </span>co<span class="_ _9"></span>ordinating<span class="_ _7"> </span>of<span class="_ _1"> </span>the<span class="_ _1"> </span>organization<span class="_ _1"> </span>even<span class="_ _4"></span>ts.</span></div><div class="t m0 x5 h3 y4f ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Pro<span class="_ _4"></span>vide<span class="_ _1"> </span>logistic<span class="_ _1"> </span>services<span class="_ _1"> </span>for<span class="_ _1"> </span>several<span class="_ _7"> </span>even<span class="_ _4"></span>ts.</span></div><div class="t m0 x4 h3 y50 ff4 fs1 fc0 sc0 ls0 ws0">TJUAA-BOSTON,<span class="_ _5"> </span>Boston<span class="_ _1a"> </span><span class="ff2">Ma<span class="_ _4"></span>y<span class="_ _1"> </span>2015<span class="_ _1"> </span>—<span class="_ _1"> </span>Present</span></div><div class="t m0 x4 h3 y51 ff2 fs1 fc0 sc0 ls0 ws0">Role:<span class="_ _e"> </span>Executive<span class="_ _7"> </span>T<span class="_ _3"></span>eam<span class="_ _1"> </span>Oﬃcer<span class="_ _1b"> </span>Tianjin<span class="_ _7"> </span>Universilit<span class="_ _4"></span>y<span class="_ _1"> </span>Alumni<span class="_ _1"> </span>Asso<span class="_ _2"></span>ciation<span class="_ _1"> </span>of<span class="_ _1"> </span>Greater<span class="_ _1"> </span>Boston</div><div class="t m0 x5 h3 y52 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">As<span class="_ _7"> </span>part<span class="_ _1"> </span>of<span class="_ _1"> </span>a<span class="_ _1"> </span>team<span class="_ _1"> </span>to<span class="_ _1"> </span>design<span class="_ _1"> </span>and<span class="_ _1"> </span>create<span class="_ _1"> </span>the<span class="_ _1"> </span>oﬃcial<span class="_ _1"> </span>website<span class="_ _7"> </span>for<span class="_ _1"> </span>the<span class="_ _1"> </span>organization.</span></div><div class="t m0 x5 h3 y53 ff3 fs1 fc0 sc0 ls0 ws0">·<span class="_ _6"> </span><span class="ff2">Pro<span class="_ _4"></span>vide<span class="_ _1"> </span>logistic<span class="_ _1"> </span>services<span class="_ _1"> </span>for<span class="_ _1"> </span>several<span class="_ _7"> </span>even<span class="_ _4"></span>ts.</span></div><div class="t m0 x6 h3 y2c ff2 fs1 fc0 sc0 ls0 ws0">P<span class="_ _4"></span>age<span class="_ _1"> </span>2<span class="_ _e"> </span>of<span class="_ _1"> </span>3</div></div><div class="pi" data-data='{"ctm":[1.300000,0.000000,0.000000,1.300000,0.000000,0.000000]}'></div></div>
+<div id="pf3" class="pf w0 h0" data-page-no="3"><div class="pc pc3 w0 h0"><img class="bi x0 y54 w1 h6" alt="" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA/AAAAPuCAIAAAAg4WGyAAAACXBIWXMAABYlAAAWJQFJUiTwAAARFElEQVR42u3asREAMAwCMTv770zWCBdpBKovmAEAAGptEisAAECpYwIAABD0AACAoAcAAAQ9AAAIegAAQNADAACCHgAAEPQAACDoAQAAQQ8AAAh6AAAQ9AAAgKAHAAAEPQAAIOgBAEDQAwAAgh4AABD0AACAoAcAAEEPAAAIegAAQNADAICgBwAABD0AACDoAQAAQQ8AAIIeAAAQ9AAAgKAHAAAEPQAACHoAAEDQAwAAgh4AAAQ9AAAg6AEAAEEPAAAIegAAEPQAAICgBwAABD0AAAh6AABA0AMAAIIeAAAQ9AAAIOgBAABBDwAACHoAAEDQAwCAoAcAAAQ9AAAg6AEAQNADAACCHgAAEPQAAICgBwAAQQ8AAAh6AABA0AMAAIIeAAAEPQAAIOgBAABBDwAAgh4AABD0AACAoAcAAAQ9AAAIegAAQNADAACCHgAAEPQAACDoAQAAQQ8AAAh6AAAQ9AAAgKAHAAAEPQAAIOgBAEDQAwAAgh4AABD0AAAg6AEAAEEPAAAIegAAQNADAICgBwAABD0AACDoAQAAQQ8AAIIeAAAQ9AAAgKAHAABBDwAACHoAAEDQAwAAgh4AAAQ9AAAg6AEAAEEPAAAIegAAEPQAAICgBwAABD0AAAh6AABA0AMAAIIeAAAQ9AAAIOgBAABBDwAACHoAAEDQAwCAoAcAAAQ9AAAg6AEAQNADAACCHgAAEPQAAICgBwAAQQ8AAAh6AABA0AMAgKAHAAAEPQAAIOgBAABBDwAAgh4AABD0AACAoAcAAAQ9AAAIegAAQNADAACCHgAABD0AACDoAQAAQQ8AAAh6AAAQ9AAAgKAHAAAEPQAAIOgBAEDQAwAAgh4AABD0AAAg6AEAAEEPAAAIegAAQNADAICgBwAABD0AACDoAQBA0AMAAIIeAAAQ9AAAgKAHAABBDwAACHoAAEDQAwAAgh4AAAQ9AAAg6AEAAEEPAACCHgAAEPQAAICgBwAABD0AAAh6AABA0AMAAIIeAAAQ9AAAIOgBAABBDwAACHoAABD0AACAoAcAAAQ9AAAg6AEAQNADAACCHgAAEPQAAICgBwAAQQ8AAAh6AABA0AMAgKAHAAAEPQAAIOgBAABBDwAAgh4AABD0AACAoAcAAEEPAAAIegAAQNADAACCHgAABD0AACDoAQAAQQ8AAAh6AAAQ9AAAgKAHAAAEPQAACHoAAEDQAwAAgh4AABD0AAAg6AEAAEEPAAAIegAAQNADAICgBwAABD0AACDoAQBA0AMAAIIeAAAQ9AAAgKAHAABBDwAACHoAAEDQAwAAgh4AAAQ9AAAg6AEAAEEPAACCHgAAEPQAAICgBwAABD0AAAh6AABA0AMAAIIeAAAEPQAAIOgBAABBDwAACHoAABD0AACAoAcAAAQ9AAAg6AEAQNADAACCHgAAEPQAACDoAQAAQQ8AAAh6AABA0AMAgKAHAAAEPQAAIOgBAABBDwAAgh4AABD0AACAoAcAAEEPAAAIegAAQNADAACCHgAABD0AACDoAQAAQQ8AAILeBAAAIOgBAABBDwAACHoAABD0AACAoAcAAAQ9AAAg6AEAQNADAACCHgAAEPQAACDoAQAAQQ8AAAh6AABA0AMAAAAAwLM2iRUAAKCUyw0AAAh6AABA0AMAAIIeAAAEPQAAIOgBAABBDwAACHoAABD0AACAoAcAAAQ9AAAIegAAQNADAACCHgAAEPQAACDoAQAAQQ8AAAh6AABA0AMAgKAHAAAEPQAAIOgBAEDQAwAAgh4AABD0AACAoAcAAEEPAAAIegAAQNADAACCHgAABD0AACDoAQAAQQ8AAIIeAAAQ9AAAgKAHAAAEPQAACHoAAEDQAwAAgh4AAAQ9AAAg6AEAAEEPAAAIegAAEPQAAICgBwAABD0AACDoAQBA0AMAAIIeAAAQ9AAAIOgBAABBDwAACHoAAEDQAwCAoAcAAAQ9AAAg6AEAAEEPAACCHgAAEPQAAICgBwAAQQ8AAAh6AABA0AMAAIIeAAAEPQAAIOgBAABBDwAACHoAABD0AACAoAcAAAQ9AAAIegAAQNADAACCHgAAEPQAACDoAQAAQQ8AAAh6AAAQ9AAAgKAHAAAEPQAAIOgBAEDQAwAAgh4AABD0AACAoAcAAEEPAAAIegAAQNADAICgBwAABD0AACDoAQAAQQ8AAIIeAAAQ9AAAgKAHAAAEPQAACHoAAEDQAwAAgh4AAAQ9AAAg6AEAAEEPAAAIegAAEPQAAICgBwAABD0AACDoAQBA0AMAAIIeAAAQ9AAAIOgBAABBDwAACHoAAEDQAwCAoAcAAAQ9AAAg6AEAQNADAACCHgAAEPQAAICgBwAAQQ8AAAh6AABA0AMAAIIeAAAEPQAAIOgBAABBDwAAgh4AABD0AACAoAcAAAQ9AAAIegAAQNADAACCHgAAEPQAACDoAQAAQQ8AAAh6AAAQ9AAAgKAHAAAEPQAAIOgBAEDQAwAAgh4AABD0AAAg6E0AAACCHgAAEPQAAICgBwAAQQ8AAAh6AABA0AMAAIIeAAAEPQAAIOgBAABBDwAAgh4AABD0AACAoAcAAAQ9AAAIegAAQNADAACCHgAAEPQAACDoAQAAQQ8AAAh6AAAQ9AAAgKAHAAAEPQAAIOgBAEDQAwAAgh4AABD0AACAoAcAAEEPAAAIegAAQNADAICgBwAABD0AACDoAQAAQQ8AAIIeAAAQ9AAAgKAHAABBDwAACHoAAEDQAwAAgh4AAAQ9AAAg6AEAAEEPAAAIegAAEPQAAICgBwAAAACAX20SKwAAQCmXGwAAEPQAAICgBwAABD0AAAh6AABA0AMAAIIeAAAQ9AAAIOgBAABBDwAACHoAABD0AACAoAcAAAQ9AAAg6AEAQNADAACCHgAAEPQAAICgBwAAQQ8AAAh6AABA0AMAgKAHAAAEPQAAIOgBAABBDwAAgh4AABD0AACAoAcAAAQ9AAAIegAAQNADAACCHgAABD0AACDoAQAAQQ8AAAh6AAAQ9AAAgKAHAAAEPQAACHoAAEDQAwAAgh4AABD0AAAg6AEAAEEPAAAIegAAQNADAICgBwAABD0AACDoAQBA0AMAAIIeAAAQ9AAAgKAHAABBDwAACHoAAEDQAwAAgh4AAAQ9AAAg6AEAAEEPAACCHgAAEPQAAICgBwAABD0AAAh6AABA0AMAAIIeAAAQ9AAAIOgBAABBDwAACHoAABD0AACAoAcAAAQ9AAAg6AEAQNADAACCHgAAEPQAACDoAQAAQQ8AAAh6AABA0AMAgKAHAAAEPQAAIOgBAABBDwAAgh4AABD0AACAoAcAAEEPAAAIegAAQNADAACCHgAABD0AACDoAQAAQQ8AAAh6AAAQ9AAAgKAHAAAEPQAACHoAAEDQAwAAgh4AABD0AAAg6AEAAEEPAAAIegAAQNADAICgBwAABD0AACDoAQBA0AMAAIIeAAAQ9AAAgKAHAABBDwAACHoAAEDQAwCAoAcAAAQ9AAAg6AEAAEEPAACCHgAAEPQAAICgBwAABD0AAAh6AABA0AMAAIIeAAAEPQAAIOgBAABBDwAACHoAABD0AACAoAcAAAQ9AAAg6AEAQNADAACCHgAAEPQAACDoAQAAQQ8AAAh6AABA0AMAgKAHAAAEPQAAIOgBAEDQmwAAAAQ9AAAg6AEAAEEPAACCHgAAEPQAAICgBwAABD0AAAh6AABA0AMAAIIeAAAEPQAAIOgBAABBDwAACHoAABD0AACAoAcAAAQ9AAAg6AEAQNADAACCHgAAEPQAACDoAQAAQQ8AAAh6AABA0AMAgKAHAAAEPQAAIOgBAABBDwAAgh4AABD0AACAoAcAAEEPAAAIegAAQNADAACCHgAABD0AACDoAQAAQQ8AAIIeAAAQ9AAAgKAHAAAEPQAACHoAAEDQAwAAgh4AABD0AAAg6AEAAEEPAAAIegAAEPQAAICgBwAABD0AACDoAQBA0AMAAIIeAAAQ9AAAgKAHAABBDwAACHoAAEDQAwCAoAcAAAQ9AAAg6AEAAEEPAACCHgAAEPQAAICgBwAABD0AAAh6AABA0AMAAIIeAAAEPQAAIOgBAABBDwAACHoAABD0AACAoAcAAAQ9AAAIegAAQNADAACCHgAAEPQAACDoAQAAQQ8AAAh6AABA0AMAgKAHAAAEPQAAIOgBAEDQAwAAgh4AABD0AACAoAcAAEEPAAAIegAAQNADAACCHgAABD0AACDoAQAAQQ8AAIIeAAAQ9AAAgKAHAAAEPQAACHoAAEDQAwAAgh4AABD0AAAg6AEAAEEPAAAIegAAEPQAAICgBwAABD0AACDoAQBA0AMAAIIeAAAQ9AAAIOgBAABBDwAACHoAAEDQAwCAoAcAAAQ9AAAg6AEAAEEPAACCHgAAEPQAAICgBwAAQQ8AAAh6AABA0AMAAIIeAAAEPQAAIOgBAABBDwAACHoAABD0AACAoAcAAAQ9AAAIegAAQNADAACCHgAAEPQAACDoAQAAQQ8AAAh6AAAQ9AAAgKAHAAAEPQAAIOgBAEDQAwAAgh4AABD0AACAoAcAAEEPAAAIegAAQNADAICgBwAABD0AACDoAQAAQQ8AAIIeAAAQ9AAAgKAHAAAEPQAACHoAAEDQAwAAgh4AAAQ9AAAg6AEAAEEPAAAIegAAEPQAAICgBwAABD0AACDoAQBA0AMAAIIeAAAQ9AAAIOgBAABBDwAACHoAAEDQAwCAoAcAAAQ9AAAg6AEAQNADAACCHgAAEPQAAICgBwAAQQ8AAAh6AABA0AMAAIIeAAAEPQAAIOgBAABBDwAAgh4AABD0AACAoAcAAAQ9AAAIegAAQNADAACCHgAAEPQAACDoAQAAQQ8AAAh6AAAQ9AAAgKAHAAAEPQAAIOgBAEDQAwAAgh4AABD0AACAoAcAAEEPAAAIegAAQNADAICgBwAABD0AACDoAQAAQQ8AAIIeAAAQ9AAAgKAHAABBDwAACHoAAEDQAwAAgh4AAAQ9AAAg6AEAAEEPAAAIegAAEPQAAICgBwAABD0AAAh6AABA0AMAAIIeAAAQ9AAAIOgBAABBDwAACHoAAEDQAwCAoAcAAAQ9AAAg6AEAQNADAACCHgAAEPQAAICgBwAAQQ8AAAh6AABA0AMAgKA3AQAACHoAAEDQAwAAgh4AAAQ9AAAg6AEAAEEPAAAIegAAEPQAAICgBwAABD0AAAh6AABA0AMAAIIeAAAQ9AAAIOgBAABBDwAACHoAAEDQAwCAoAcAAAQ9AAAg6AEAQNADAACCHgAAEPQAAICgBwAAQQ8AAAh6AABA0AMAAIIeAAAEPQAAIOgBAABBDwAAgh4AABD0AACAoAcAAAQ9AAAIegAAQNADAACCHgAABD0AACDoAQAAQQ8AAAh6AAAQ9AAAgKAHAAAEPQAAIOgBAEDQAwAAgh4AABD0AAAg6AEAAEEPAAAIegAAQNADAICgBwAABD0AACDoAQAAQQ8AAIIeAAAQ9AAAgKAHAABBDwAACHoAAEDQAwAAgh4AAAQ9AAAg6AEAAEEPAAAIegAAEPQAAICgBwAABD0AAAh6AABA0AMAAIIeAAAQ9AAAIOgBAABBDwAACHoAABD0AACAoAcAAAQ9AAAg6AEAQNADAACCHgAAEPQAAICgBwAAQQ8AAAh6AABA0AMAgKAHAAAEPQAAIOgBAABBDwAAgh4AABD0AACAoAcAAAQ9AAAIegAAQNADAACCHgAABD0AACDoAQAAQQ8AAAh6AAAQ9AAAgKAHAAAEPQAAIOgBAEDQAwAAgh4AABD0AAAg6AEAAEEPAAAIegAAQNADAICgBwAABD0AACDoAQAAAACg0QXKmhDJp3sGogAAAABJRU5ErkJggg=="/><div class="t m0 x0 h4 y2e ff4 fs1 fc0 sc0 ls0 ws0">EDUCA<span class="_ _13"></span>TION</div><div class="t m0 x4 h3 y55 ff4 fs1 fc0 sc0 ls0 ws0">Do<span class="_ _2"></span>ctor<span class="_ _5"> </span>of<span class="_ _5"> </span>Philosophy<span class="_ _11"> </span>in<span class="_ _5"> </span>Chemistry<span class="_ _1c"> </span><span class="ff2">August<span class="_ _7"> </span>2013</span></div><div class="t m0 x4 h3 y56 ff2 fs1 fc0 sc0 ls0 ws0">Syracuse<span class="_ _7"> </span>Universit<span class="_ _4"></span>y<span class="_ _3"></span>,<span class="_ _1"> </span>Syracuse<span class="_ _1"> </span>NY</div><div class="t m0 x4 h3 y57 ff4 fs1 fc0 sc0 ls0 ws0">Master<span class="_ _5"> </span>of<span class="_ _5"> </span>Science<span class="_ _5"> </span>in<span class="_ _5"> </span>Applied<span class="_ _5"> </span>Statistics<span class="_ _1d"> </span><span class="ff2">Ma<span class="_ _4"></span>y<span class="_ _1"> </span>2013</span></div><div class="t m0 x4 h3 y58 ff2 fs1 fc0 sc0 ls0 ws0">Syracuse<span class="_ _7"> </span>Universit<span class="_ _4"></span>y<span class="_ _3"></span>,<span class="_ _1"> </span>Syracuse<span class="_ _1"> </span>NY</div><div class="t m0 x4 h3 y59 ff4 fs1 fc0 sc0 ls0 ws0">Bac<span class="_ _4"></span>helor<span class="_ _5"> </span>of<span class="_ _5"> </span>Science<span class="_ _5"> </span>in<span class="_ _5"> </span>Pharmaceutical<span class="_ _5"> </span>Science<span class="_ _1e"> </span><span class="ff2">July<span class="_ _7"> </span>2007</span></div><div class="t m0 x4 h3 y5a ff2 fs1 fc0 sc0 ls0 ws0">Tianjin<span class="_ _7"> </span>Universit<span class="_ _4"></span>y<span class="_ _3"></span>,<span class="_ _1"> </span>Tianjin<span class="_ _1"> </span>China</div><div class="t m0 x0 h4 y5b ff4 fs1 fc0 sc0 ls0 ws0">CER<span class="_ _13"></span>TIFICA<span class="_ _3"></span>TE</div><div class="t m0 x4 h3 y5c ff4 fs1 fc0 sc0 ls0 ws0">SAS<span class="_ _5"> </span>Certiﬁed<span class="_ _5"> </span>Adv<span class="_ _4"></span>anced<span class="_ _11"> </span>Programmer<span class="_ _5"> </span>for<span class="_ _5"> </span>SAS<span class="_ _5"> </span>9<span class="_ _1f"> </span><span class="ff2">Ma<span class="_ _4"></span>y<span class="_ _1"> </span>2014</span></div><div class="t m0 x4 h3 y5d ff2 fs1 fc0 sc0 ls0 ws0">SAS<span class="_ _7"> </span>Global<span class="_ _1"> </span>Certiﬁcation<span class="_ _1"> </span>program,<span class="_ _1"> </span>SAS<span class="_ _1"> </span>Institute,<span class="_ _1"> </span>Cary<span class="_ _4"></span>,<span class="_ _7"> </span>NC</div><div class="t m0 x4 h3 y5e ff4 fs1 fc0 sc0 ls0 ws0">SAS<span class="_ _5"> </span>Certiﬁed<span class="_ _5"> </span>Base<span class="_ _5"> </span>Programmer<span class="_ _5"> </span>for<span class="_ _5"> </span>SAS<span class="_ _5"> </span>9<span class="_ _20"> </span><span class="ff2">Marc<span class="_ _4"></span>h<span class="_ _1"> </span>2014</span></div><div class="t m0 x4 h3 y5f ff2 fs1 fc0 sc0 ls0 ws0">SAS<span class="_ _7"> </span>Global<span class="_ _1"> </span>Certiﬁcation<span class="_ _1"> </span>program,<span class="_ _1"> </span>SAS<span class="_ _1"> </span>Institute,<span class="_ _1"> </span>Cary<span class="_ _4"></span>,<span class="_ _7"> </span>NC</div><div class="t m0 x0 h4 y60 ff4 fs1 fc0 sc0 ls0 ws0">TECHNICAL<span class="_ _5"> </span>STRENGTHS</div><div class="t m0 x7 h3 y61 ff2 fs1 fc0 sc0 ls0 ws0">Data<span class="_ _7"> </span>Analysis:<span class="_ _21"> </span>Data<span class="_ _7"> </span>handling,<span class="_ _1"> </span>Exploratory<span class="_ _1"> </span>Data<span class="_ _1"> </span>Analysis,<span class="_ _1"> </span>mo<span class="_ _9"></span>del<span class="_ _1"> </span>building<span class="_ _7"> </span>and<span class="_ _1"> </span>ﬁtting,</div><div class="t m0 x8 h3 y62 ff2 fs1 fc0 sc0 ls0 ws0">results<span class="_ _7"> </span>interpretation</div><div class="t m0 x9 h3 y63 ff2 fs1 fc0 sc0 ls0 ws0">Statistical<span class="_ _7"> </span>Skills<span class="_ _21"> </span>Sampling<span class="_ _7"> </span>metho<span class="_ _9"></span>ds,<span class="_ _1"> </span>data<span class="_ _1"> </span>managemen<span class="_ _4"></span>t,<span class="_ _1"> </span>statistical<span class="_ _1"> </span>mo<span class="_ _2"></span>delling,<span class="_ _1"> </span>simulation</div><div class="t m0 x8 h3 y64 ff2 fs1 fc0 sc0 ls0 ws0">univ<span class="_ _4"></span>ariate,<span class="_ _7"> </span>biv<span class="_ _4"></span>ariate,<span class="_ _7"> </span>multiv<span class="_ _3"></span>ariate<span class="_ _1"> </span>regression<span class="_ _1"> </span>metho<span class="_ _2"></span>ds<span class="_ _1"> </span>and<span class="_ _1"> </span>logistic<span class="_ _1"> </span>regression</div><div class="t m0 x8 h3 y65 ff2 fs1 fc0 sc0 ls0 ws0">exp<span class="_ _2"></span>erimen<span class="_ _4"></span>t<span class="_ _1"> </span>design<span class="_ _1"> </span>and<span class="_ _1"> </span>ANOV<span class="_ _13"></span>A,<span class="_ _7"> </span>MANOV<span class="_ _13"></span>A,<span class="_ _7"> </span>discrimination<span class="_ _1"> </span>analysis</div><div class="t m0 x8 h3 y66 ff2 fs1 fc0 sc0 ls0 ws0">classiﬁcation,<span class="_ _7"> </span>factor<span class="_ _1"> </span>analysis,<span class="_ _1"> </span>principal<span class="_ _1"> </span>comp<span class="_ _9"></span>onen<span class="_ _4"></span>ts<span class="_ _1"> </span>analysis,<span class="_ _1"> </span>cluster<span class="_ _1"> </span>analysis</div><div class="t m0 x8 h3 y67 ff2 fs1 fc0 sc0 ls0 ws0">time<span class="_ _7"> </span>series,<span class="_ _1"> </span>forecasting</div><div class="t m0 xa h3 y68 ff2 fs1 fc0 sc0 ls0 ws0">Computer<span class="_ _7"> </span>Languages:<span class="_ _21"> </span>Python,<span class="_ _7"> </span>SQL<span class="_ _1"> </span>and<span class="_ _1"> </span>HTML.</div><div class="t m0 xb h3 y69 ff2 fs1 fc0 sc0 ls0 ws0">Op<span class="_ _2"></span>erating<span class="_ _1"> </span>Systems:<span class="_ _21"> </span>Windo<span class="_ _4"></span>ws<span class="_ _7"> </span>(XP<span class="_ _1"> </span>and<span class="_ _1"> </span>7)<span class="_ _1"> </span>and<span class="_ _1"> </span>Linux<span class="_ _7"> </span>(Ubuntu<span class="_ _7"> </span>14.04).</div><div class="t m0 xc h3 y6a ff2 fs1 fc0 sc0 ls0 ws0">Statistical<span class="_ _7"> </span>Softw<span class="_ _4"></span>are:<span class="_ _21"> </span>SAS<span class="_ _7"> </span>(9.1,<span class="_ _1"> </span>9.2,<span class="_ _1"> </span>9.3)<span class="_ _1"> </span>and<span class="_ _1"> </span>R.</div><div class="t m0 xd h3 y6b ff2 fs1 fc0 sc0 ls0 ws0">SAS<span class="_ _7"> </span>T<span class="_ _4"></span>ools:<span class="_ _21"> </span>SAS<span class="_ _7"> </span>V9.3/BASE<span class="_ _1"> </span>SAS,<span class="_ _1"> </span>SAS/MACR<span class="_ _4"></span>OS,<span class="_ _7"> </span>SAS/GRAPH,<span class="_ _1"> </span>SAS/REPOR<span class="_ _3"></span>TS</div><div class="t m0 x8 h3 y6c ff2 fs1 fc0 sc0 ls0 ws0">SAS/ST<span class="_ _3"></span>A<span class="_ _3"></span>T,<span class="_ _1"> </span>SAS/SQL,<span class="_ _1"> </span>SAS/ODS</div><div class="t m0 xe h3 y6d ff2 fs1 fc0 sc0 ls0 ws0">SAS<span class="_ _7"> </span>Pro<span class="_ _9"></span>cs:<span class="_ _21"> </span>Prin<span class="_ _4"></span>t,<span class="_ _7"> </span>Means,<span class="_ _1"> </span>Univ<span class="_ _4"></span>ariate,<span class="_ _1"> </span>Correlation,<span class="_ _1"> </span>Regression,<span class="_ _1"> </span>SQL,<span class="_ _7"> </span>Rep<span class="_ _9"></span>ort,<span class="_ _1"> </span>F<span class="_ _3"></span>req,<span class="_ _1"> </span>Sort,</div><div class="t m0 x8 h3 y6e ff2 fs1 fc0 sc0 ls0 ws0">Summary<span class="_ _3"></span>,<span class="_ _1"> </span>F<span class="_ _3"></span>ormat,<span class="_ _1"> </span>Imp<span class="_ _2"></span>ort,<span class="_ _1"> </span>Exp<span class="_ _2"></span>ort,<span class="_ _1"> </span>T<span class="_ _3"></span>ransp<span class="_ _2"></span>ose,<span class="_ _1"> </span>Compare,<span class="_ _1"> </span>Anov<span class="_ _3"></span>a,<span class="_ _1"> </span>App<span class="_ _2"></span>end,</div><div class="t m0 x8 h3 y6f ff2 fs1 fc0 sc0 ls0 ws0">Gplot<span class="_ _7"> </span>and<span class="_ _1"> </span>Gchart.</div><div class="t m0 xf h3 y70 ff2 fs1 fc0 sc0 ls0 ws0">Visualization<span class="_ _7"> </span>T<span class="_ _4"></span>ool:<span class="_ _21"> </span>SAS/GRAPH,<span class="_ _7"> </span>Go<span class="_ _2"></span>ogle<span class="_ _1"> </span>Charts<span class="_ _1"> </span>and<span class="_ _1"> </span>Adob<span class="_ _2"></span>e<span class="_ _1"> </span>Photoshop.</div><div class="t m0 x10 h3 y71 ff2 fs1 fc0 sc0 ls0 ws0">Others:<span class="_ _21"> </span>Microsoft<span class="_ _7"> </span>Oﬃce<span class="_ _7"> </span>(W<span class="_ _4"></span>ord,<span class="_ _7"> </span>Excel,<span class="_ _1"> </span>P<span class="_ _4"></span>ow<span class="_ _4"></span>erP<span class="_ _4"></span>oint,<span class="_ _7"> </span>and<span class="_ _1"> </span>Outlo<span class="_ _2"></span>ok),<span class="_ _1"> </span>LaT<span class="_ _3"></span>eX</div><div class="t m0 x0 h4 y72 ff4 fs1 fc0 sc0 ls0 ws0">A<span class="_ _13"></span>W<span class="_ _13"></span>ARDS</div><div class="t m0 xa h3 y73 ff2 fs1 fc0 sc0 ls0 ws0">Studen<span class="_ _4"></span>t<span class="_ _1"> </span>Award,<span class="_ _7"> </span>Boron<span class="_ _1"> </span>In<span class="_ _1"> </span>The<span class="_ _1"> </span>Americas<span class="_ _1"> </span>(BORAM)<span class="_ _1"> </span>XI<span class="_ _2"></span>I<span class="_ _2"></span>I<span class="_ _1"> </span>conference,<span class="_ _1"> </span>W<span class="_ _3"></span>est<span class="_ _1"> </span>Lafay<span class="_ _4"></span>ette,<span class="_ _7"> </span>IN<span class="_ _21"> </span><span class="ff5">June<span class="_ _7"> </span></span>2012</div><div class="t m0 xa h3 y74 ff2 fs1 fc0 sc0 ls0 ws0">Studen<span class="_ _4"></span>t<span class="_ _1"> </span>T<span class="_ _3"></span>rav<span class="_ _4"></span>el<span class="_ _1"> </span>Gran<span class="_ _4"></span>t,<span class="_ _1"> </span>Department<span class="_ _7"> </span>of<span class="_ _1"> </span>Chemistry<span class="_ _3"></span>,<span class="_ _1"> </span>Syracuse<span class="_ _1"> </span>Universit<span class="_ _4"></span>y<span class="_ _3"></span>,<span class="_ _7"> </span>Syracuse,<span class="_ _1"> </span>NY<span class="_ _22"> </span><span class="ff5">Jul<span class="_ _3"></span>y<span class="_ _11"> </span><span class="ff2">2011</span></span></div><div class="t m0 x6 h3 y2c ff2 fs1 fc0 sc0 ls0 ws0">P<span class="_ _4"></span>age<span class="_ _1"> </span>3<span class="_ _e"> </span>of<span class="_ _1"> </span>3</div></div><div class="pi" data-data='{"ctm":[1.300000,0.000000,0.000000,1.300000,0.000000,0.000000]}'></div></div>
+</div>
+<div class="loading-indicator">
+<img alt="" src="data:image/png;base64,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"/>
+</div>
 
-<!--l. 44--><p class="noindent" ><span 
-class="cmbx-10x-x-109">QUALIFICATIONS SUMMARY</span>
-_____________________________________________________________ <dl class="list1"><dt class="list">
-    </dt><dd 
-class="list">
-
-     <!--l. 60--><p class="noindent" ><span 
-class="cmbx-10x-x-109">Pharmaceutical Industry</span>
-    <dl class="list2"><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-  <!--l. 61--><p class="noindent" >Excellent knowledge and over three years hands on experiences in clinical data standards.
-     </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-  <!--l. 62--><p class="noindent" >Currently working for a multinational pharmaceutical and biologics company (AstraZeneca).
-     </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-  <!--l. 63--><p class="noindent" >Three years of industry experiences in biopharma and pharmaceutical service companies.
-     </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-  <!--l. 64--><p class="noindent" >Over six years of experiences in clinical data related statistical programming and data analytics.
-     </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-  <!--l. 65--><p class="noindent" >Extensive training in CDSIC (SDTM and ADaM) data standards and clinical data flow.
-     </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-  <!--l. 66--><p class="noindent" >Working practices of programming and validation, regulatory guidance (21 CFR  Part 11), and Good
-     Clinical Practice (ICH E6). </dd></dl>
-     <!--l. 75--><p class="noindent" ><span 
-class="cmbx-10x-x-109">Personal Skills</span>
-    <dl class="list2"><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-  <!--l. 76--><p class="noindent" >Good attention to detail &amp; ability to work in a pressurised time sensitive environment.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 77--><p class="noindent" >Excellent organizational and interpersonal communication skills.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 78--><p class="noindent" >Strong time management and multiple complex tasks-handling skills.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 79--><p class="noindent" >Combine  patience,  determination,  and  persistence  to  solve  problems  using  various  skills  such  as
-   analytical and critical thinking, logical and methodical approach, lateral thinking. </dd></dl>
-   </dd></dl>
-<!--l. 88--><p class="noindent" ><span 
-class="cmbx-10x-x-109">EXPERIENCE</span>
-________________________________________________________________________________ <dl class="list1"><dt class="list">
-    </dt><dd 
-class="list">
-    <!--l. 88--><p class="noindent" >
-    <!--l. 92--><p class="noindent" ><span 
-class="cmbx-10x-x-109">AstraZeneca Pharmaceuticals LP, Boston                                      </span>July 2015 &#8212; Present
-     <br 
-class="newline" /> Role: Senior Specialist Programming (Quantitative Clinical Pharmacology Programmer), Quantitative
-     Clinical Pharmacology
-     <dl class="list2"><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-  <!--l. 93--><p class="noindent" >Therapeutic Areas Supported: Oncology, Respiratory, Diabetes and Cardiovascular diseases.
-     </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-  <!--l. 94--><p class="noindent" >Lead the application of computer science and information technology methods to provide the technical
-     components that support all aspects of pharmacology clinical development process, including clinical
-     development plans and scientific utilization data.
-     </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-  <!--l. 95--><p class="noindent" >Provide strategic input and leadership to the delivery of all technical programming and information
-     components of deliverables.
-     </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-  <!--l. 96--><p class="noindent" >Plan and program the integration of clinical data databases from multiple studies or sources/vendors.
-     </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-  <!--l. 97--><p class="noindent" >Lead NONMEM dataset programming support for complex trial designs such as adaptive trial designs
-     for important internal decision making (Go/No Go criteria).
-     </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-  <!--l. 98--><p class="noindent" >Lead programming support to pharmacometric modeling and simulation for deliverables to regulatory
-     submissions.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 99--><p class="noindent" >Oversee the quality of all deliverables, holding partners and providers accountable for the quality of
-   their deliverable.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 101--><p class="noindent" >Act as a major contributor to develop an R package to simplify and automate the workflow of creating
-   standard structured datasets for pharmacometric/disease modeling and simulation.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 102--><p class="noindent" >Identify opportunities to improve the methodology and provide practical solutions for problems.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 103--><p class="noindent" >Contribute to the development of best practice to improve quality, efficiency and effectiveness.
-   </dd></dl>
-   <!--l. 107--><p class="noindent" >
-   <!--l. 109--><p class="noindent" ><span 
-class="cmbx-10x-x-109">PAREXEL International, Boston                                            </span>August 2014 &#8212; July 2015
-   <br 
-class="newline" /> Role: Statistical Programmer
-   <dl class="list2"><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 110--><p class="noindent" >Perform efficient programming practice to produce and/or QC CDISC or Sponsor-specific datasets and
-   offline listings for multiple studies.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 111--><p class="noindent" >Successfully provided statistical programming support as a lead programmer to two phase 3 studies.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 112--><p class="noindent" >Provided unblinded safety reports to support the Data and Safety Monitoring Board (DSMB/DMC)
-   committee meetings.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 113--><p class="noindent" >Responsible for import/export programming specification development, test data creation and test data
-   entry, import/export programming functional testing, as well as mapping specifications to support
-   relevant data standards.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 114--><p class="noindent" >Developed statistical programs with various functionality such as SAS listings, SAS summary tables,
-   data mapping according to sponsor standard or CDISC standards (SDTM/AdAM), data transfering.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 115--><p class="noindent" >Developed excellent knowledge in clincial trial data standards and workflow working with different
-   clients and various therapeutic area data such oncology, vaccine and neurology.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 116--><p class="noindent" >Developed wider knowledge of SAS and other relevant programming languages and processes within
-   the Biostatistics, and Medical arenas.
-   </dd></dl>
-   <!--l. 123--><p class="noindent" ><span 
-class="cmbx-10x-x-109">DUCK FLATS Pharma, LLC, New York                           </span>November 2013 &#8212; August 2014
-   <br 
-class="newline" /> Role: Statistician/SAS programmer
-   <dl class="list2"><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 124--><p class="noindent" >Working with Data management and other function groups for data checking and problem solving.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 125--><p class="noindent" >Providing programming support on Phase I and II studies.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 126--><p class="noindent" >QC SDTM datasets by following CDISC SDTM Implementation Guideline and review Data Spec.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 127--><p class="noindent" >Creating Tables, Listings, and Figures output per Statistical Analysis Plan (SAP).
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 128--><p class="noindent" >Performing parallel programming QC for Tables and Listings.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 129--><p class="noindent" >Assisting study design, Population PK/PD modeling and particular QT (ECG) data analysis.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 130--><p class="noindent" >Calculating sample size, managing database, comparing end-points for pre-clinical trials studies.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 131--><p class="noindent" >Reviewed various sections of CTD for clients.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 132--><p class="noindent" >Developing utility Macros to improve programming efficiency and consistency.
-   </dd></dl>
-   <!--l. 138--><p class="noindent" ><span 
-class="cmbx-10x-x-109">Syracuse University, New York                                             </span>January 2010 &#8212; May 2013
-   <br 
-class="newline" /> Role: Research Analyst
-   <dl class="list2"><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 139--><p class="noindent" >Design of experiment and developed Statistical Analysis Plan for products characterization and data
-   analysis.
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 140--><p class="noindent" >Performed statistical modeling using SAS 9.2 and R 2.13.0
-   </dd><dt class="list">
-  <span 
-class="cmsy-10x-x-109">&#x22C5;</span> </dt><dd 
-class="list">
-   <!--l. 141--><p class="noindent" >Prepared statistical analysis reports using SAS and documentation for publication submission. </dd></dl>
-   </dd></dl>
-<!--l. 175--><p class="noindent" ><span 
-class="cmbx-10x-x-109">EDUCATION</span>
-_________________________________________________________________________________ <dl class="list1"><dt class="list">
-    </dt><dd 
-class="list">
-    <!--l. 175--><p class="noindent" >
-    <!--l. 179--><p class="noindent" ><span 
-class="cmbx-10x-x-109">Doctor of Philosophy in Chemistry                                                        </span>August 2013
-     <br 
-class="newline" /> Syracuse University, Syracuse NY
-   <!--l. 182--><p class="noindent" ><span 
-class="cmbx-10x-x-109">Master of Science in Applied Statistics                                                      </span>May 2013
-   <br 
-class="newline" /> Syracuse University, Syracuse NY
-   <!--l. 185--><p class="noindent" ><span 
-class="cmbx-10x-x-109">Bachelor of Science in Pharmaceutical Science                                             </span>July 2007
-   <br 
-class="newline" /> Tianjin University, Tianjin China
-   <!--l. 189--><p class="noindent" >
-   </dd></dl>
-<!--l. 203--><p class="noindent" ><span 
-class="cmbx-10x-x-109">CERTIFICATE</span>
-________________________________________________________________________________ <dl class="list1"><dt class="list">
-    </dt><dd 
-class="list">
-    <!--l. 203--><p class="noindent" >
-    <!--l. 210--><p class="noindent" ><span 
-class="cmbx-10x-x-109">SAS Certified Advanced Programmer for SAS 9                                          </span>May 2014
-     <br 
-class="newline" /> SAS Global Certification program, SAS Institute, Cary, NC
-     <!--l. 213--><p class="noindent" ><span 
-class="cmbx-10x-x-109">SAS Certified Base Programmer for SAS 9                                               </span>March 2014
-     <br 
-class="newline" /> SAS Global Certification program, SAS Institute, Cary, NC
-     </dd></dl>
-<!--l. 224--><p class="noindent" ><span 
-class="cmbx-10x-x-109">TECHNICAL STRENGTHS</span>__________________________________________________________________________________
-    <dl class="list1"><dt class="list">
-    </dt><dd 
-class="list">
-    <!--l. 224--><p class="noindent" >
-    <div class="tabular"> <table id="TBL-1" class="tabular" 
-cellspacing="0" cellpadding="0"  
-><colgroup id="TBL-1-1g"><col 
-id="TBL-1-1"><col 
-id="TBL-1-2"></colgroup><tr  
- style="vertical-align:baseline;" id="TBL-1-1-"><td  style="white-space:nowrap; text-align:right;" id="TBL-1-1-1"  
-class="td11">      Data Analysis:  </td><td  style="white-space:nowrap; text-align:left;" id="TBL-1-1-2"  
-class="td11"> Data handling, Exploratory Data Analysis, model building and fitting,         </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-1-2-"><td  style="white-space:nowrap; text-align:right;" id="TBL-1-2-1"  
-class="td11">                    </td><td  style="white-space:nowrap; text-align:left;" id="TBL-1-2-2"  
-class="td11"> results interpretation                                                                          </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-1-3-"><td  style="white-space:nowrap; text-align:right;" id="TBL-1-3-1"  
-class="td11">      Statistical Skills  </td><td  style="white-space:nowrap; text-align:left;" id="TBL-1-3-2"  
-class="td11"> Sampling methods, data management, statistical modelling, simulation         </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-1-4-"><td  style="white-space:nowrap; text-align:right;" id="TBL-1-4-1"  
-class="td11">                    </td><td  style="white-space:nowrap; text-align:left;" id="TBL-1-4-2"  
-class="td11"> univariate, bivariate, multivariate regression methods and logistic regression  </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-1-5-"><td  style="white-space:nowrap; text-align:right;" id="TBL-1-5-1"  
-class="td11">                    </td><td  style="white-space:nowrap; text-align:left;" id="TBL-1-5-2"  
-class="td11"> experiment design and ANOVA, MANOVA, discrimination analysis             </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-1-6-"><td  style="white-space:nowrap; text-align:right;" id="TBL-1-6-1"  
-class="td11">                    </td><td  style="white-space:nowrap; text-align:left;" id="TBL-1-6-2"  
-class="td11"> classification, factor analysis, principal components analysis, cluster analysis  </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-1-7-"><td  style="white-space:nowrap; text-align:right;" id="TBL-1-7-1"  
-class="td11">                    </td><td  style="white-space:nowrap; text-align:left;" id="TBL-1-7-2"  
-class="td11"> time series, forecasting                                                                        </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-1-8-"><td  style="white-space:nowrap; text-align:right;" id="TBL-1-8-1"  
-class="td11"> Computer Languages:  </td><td  style="white-space:nowrap; text-align:left;" id="TBL-1-8-2"  
-class="td11"> Python, SQL and HTML.                                                                    </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-1-9-"><td  style="white-space:nowrap; text-align:right;" id="TBL-1-9-1"  
-class="td11">   Operating Systems:  </td><td  style="white-space:nowrap; text-align:left;" id="TBL-1-9-2"  
-class="td11"> Windows (XP and 7) and Linux (Ubuntu 14.04).                                     </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-1-10-"><td  style="white-space:nowrap; text-align:right;" id="TBL-1-10-1"  
-class="td11">   Statistical Software:  </td><td  style="white-space:nowrap; text-align:left;" id="TBL-1-10-2"  
-class="td11"> SAS (9.1, 9.2, 9.3, 9.4) and R.                                                              </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-1-11-"><td  style="white-space:nowrap; text-align:right;" id="TBL-1-11-1"  
-class="td11">          SAS Tools:  </td><td  style="white-space:nowrap; text-align:left;" id="TBL-1-11-2"  
-class="td11"> SAS V9.3/BASE SAS, SAS/MACROS, SAS/GRAPH, SAS/REPORTS        </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-1-12-"><td  style="white-space:nowrap; text-align:right;" id="TBL-1-12-1"  
-class="td11">                    </td><td  style="white-space:nowrap; text-align:left;" id="TBL-1-12-2"  
-class="td11"> SAS/STAT, SAS/SQL, SAS/ODS                                                         </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-1-13-"><td  style="white-space:nowrap; text-align:right;" id="TBL-1-13-1"  
-class="td11">          SAS Procs:  </td><td  style="white-space:nowrap; text-align:left;" id="TBL-1-13-2"  
-class="td11"> Print, Means, Univariate, Correlation, Regression, SQL, Report, Freq, Sort,  </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-1-14-"><td  style="white-space:nowrap; text-align:right;" id="TBL-1-14-1"  
-class="td11">                    </td><td  style="white-space:nowrap; text-align:left;" id="TBL-1-14-2"  
-class="td11"> Summary, Format, Import, Export, Transpose, Compare, Anova, Append,    </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-1-15-"><td  style="white-space:nowrap; text-align:right;" id="TBL-1-15-1"  
-class="td11">                    </td><td  style="white-space:nowrap; text-align:left;" id="TBL-1-15-2"  
-class="td11"> Gplot and Gchart.                                                                              </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-1-16-"><td  style="white-space:nowrap; text-align:right;" id="TBL-1-16-1"  
-class="td11">    Visualization Tool:  </td><td  style="white-space:nowrap; text-align:left;" id="TBL-1-16-2"  
-class="td11"> SAS/GRAPH, Google Charts and Adobe Photoshop.                                </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-1-17-"><td  style="white-space:nowrap; text-align:right;" id="TBL-1-17-1"  
-class="td11">             Others:  </td><td  style="white-space:nowrap; text-align:left;" id="TBL-1-17-2"  
-class="td11"> Microsoft Office (Word, Excel, PowerPoint, and Outlook), LaTeX                </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-1-18-"><td  style="white-space:nowrap; text-align:right;" id="TBL-1-18-1"  
-class="td11">                    </td><td  style="white-space:nowrap; text-align:left;" id="TBL-1-18-2"  
-class="td11"> Python.                                                                                           </td>
-</tr></table></div> </dd></dl>
-<!--l. 259--><p class="noindent" ><span 
-class="cmbx-10x-x-109">HONORS AND AWARDS</span>_____________________________________________________________________________________
-    <dl class="list1"><dt class="list">
-    </dt><dd 
-class="list">
-    <!--l. 259--><p class="noindent" >
-    <div class="tabular"> <table id="TBL-2" class="tabular" 
-cellspacing="0" cellpadding="0"  
-><colgroup id="TBL-2-1g"><col 
-id="TBL-2-1"><col 
-id="TBL-2-2"></colgroup><tr  
- style="vertical-align:baseline;" id="TBL-2-1-"><td  style="white-space:nowrap; text-align:left;" id="TBL-2-1-1"  
-class="td11"> Student Award, Boron In The Americas (BORAM) XIII conference, West Lafayette, IN  </td><td  style="white-space:nowrap; text-align:left;" id="TBL-2-1-2"  
-class="td11"> <span 
-class="cmcsc-10x-x-109">J<span 
-class="small-caps">u</span><span 
-class="small-caps">n</span><span 
-class="small-caps">e</span> </span>2012  </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-2-2-"><td  style="white-space:nowrap; text-align:left;" id="TBL-2-2-1"  
-class="td11"> Student Travel Grant, Department of Chemistry, Syracuse University, Syracuse, NY        </td><td  style="white-space:nowrap; text-align:left;" id="TBL-2-2-2"  
-class="td11"> <span 
-class="cmcsc-10x-x-109">J<span 
-class="small-caps">u</span><span 
-class="small-caps">l</span><span 
-class="small-caps">y</span> </span>2011  </td>
-</tr><tr  
- style="vertical-align:baseline;" id="TBL-2-3-"><td  style="white-space:nowrap; text-align:left;" id="TBL-2-3-1"  
-class="td11">                                                                            </td></tr></table> </div>
-   </dd></dl>
- 
 
 
 {% endblock %}
