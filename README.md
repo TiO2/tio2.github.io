@@ -1,7 +1,9 @@
 tio2.github.io
 ==============
 
-This is a test of static Flask site by Frozen-Flask (for building static content) and Flask-FlatPages (for writing pages in Markdown).
+This is a test of static Flask site by Frozen-Flask (for building static content) and Flask-FlatPages (for writing pages in Markdown). The static pages can be deployed to Github for hosting. 
+
+Check out the [site](http://tio2.github.io)
 
 
 History:

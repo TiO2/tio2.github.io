@@ -14,6 +14,10 @@ def cv():
 def publication():
     return render_template('publication.html')
     
+@app.route('/links/')
+def links():
+    return render_template('links.html')
+        
  
 @app.route('/blog/')
 def blog():
