@@ -13,7 +13,13 @@ check the csv_to_md.py
 However, pay attention, that the created md filename can not contian blanks or the github will not render the page at all. 
 Delete the csv rows after the run? (temporary solution for the constant updates issue by making a copy of the original csv or append to a backup csv. see source code.) 
 
+03-17-2020
+update the files to Python3. Use absolute import for some of the python files. 
 
+
+
+
+## instructions to rerun: 
 
 $ pip install -r requirements.txt
 # Run local server
