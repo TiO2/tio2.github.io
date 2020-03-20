@@ -8,3 +8,4 @@ dist
 *.html~
 *.py~
 
+*.DS_Store
