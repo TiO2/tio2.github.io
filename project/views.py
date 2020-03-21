@@ -18,7 +18,6 @@ def publication():
 def links():
     return render_template('links.html')
         
- 
 @app.route('/blog/')
 def blog():
     posts = [page for page in pages if 'date' in page.meta]
@@ -27,7 +26,7 @@ def blog():
         key=lambda page: page.meta['date'])
     return render_template('blog.html', pages=sorted_posts)
  
-@app.route('/<path:path>/')
+@app.route('/blog/<path:path>/')
 def page(path):
     # `path` is the filename of a page, without the file extension
     # e.g. "first-post"

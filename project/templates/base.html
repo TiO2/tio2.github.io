@@ -4,10 +4,10 @@
 <title>{% block page_title %}My Site - Pei Ma{% endblock %}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 {% block css %}{% endblock %}
-</head>
 
-        <!-- active link for navigation -->
-                    <script>
+
+<!-- active link for navigation -->
+<script>
                         function setActive() {
                           aObj = document.getElementById('main_nav').getElementsByTagName('a');
                           
@@ -23,8 +23,9 @@
                           }
                         }
                         window.onload = setActive;                    
-                    </script>
-                    
+</script>
+
+</head>
                     
 <body class="box">
 <nav class="nav-menu" id="main_nav">
@@ -44,6 +45,7 @@
 
 
 <div id="header">
+  <hr>
 <h3 class="title"> Help me to work on interesting projects.</h3>
 </div>
 <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
