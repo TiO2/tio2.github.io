@@ -1,0 +1,88 @@
+<!doctype html>
+<head>
+<meta charset="utf-8">
+<title>My Site - Pei Ma</title>
+<link rel="stylesheet" href="/static/css/style.css">
+
+
+
+<!-- active link for navigation -->
+<script>
+                        function setActive() {
+                          aObj = document.getElementById('main_nav').getElementsByTagName('a');
+                          
+                          aObj[0].id='menu-active';
+                          
+                          for(i=1;i<aObj.length;i++) { 
+                            aObj[i].id = "";
+                            
+                            if(document.location.href.indexOf(aObj[i].href)>=0) {
+                              aObj[i].id='menu-active';
+                              aObj[0].id='';
+                            }
+                          }
+                        }
+                        window.onload = setActive;                    
+</script>
+
+</head>
+                    
+<body class="box">
+<nav class="nav-menu" id="main_nav">
+<ul>
+<li><a href="/">Home</a></li>
+<li><a href="/blog/">Blog</a></li>
+<li><a href="/cv/">CV</a></li>
+<li><a href="/publication/">Publication</a></li>
+<li><a href="/links/">Useful Links</a></li>
+</ul>
+</nav>
+<div class="container">
+<div class="content" role="main">
+
+<h1>瑞士</h1>
+<p>2014-11-30 20:59:00</p>
+<p>(Reuters) - Gold prices fell the most in more than three weeks and the Swiss franc dipped slightly on Monday after Swiss voters overwhelmingly rejected proposals to boost gold reserves in a referendum.</p>
+<p>The measure, had it been approved, would have compelled the Swiss National Bank (SNB) to more than double its gold reserves and banned it from ever selling the metal, threatening its ability to defend a 1.20 euro cap on the Swiss franc imposed at the height of the euro zone crisis.</p>
+<p>Gold fell more than two percent to $1,142.91 per ounce, its lowest level in more than three weeks, while silver also took a hit, falling more than six percent to a five-year low of $14.42 per ounce.</p>
+<p>The Swiss franc dipped to 1.2042 on the euro from 1.2018 at the end of last week. It last stood at 1.2036.</p>
+<p>"The result should of course temporarily relieve the pressure on the SNB's currency floor, albeit whilst doing little or nothing in our opinion to reverse the fundamental downward trajectory of EUR/CHF," said JPMorgan analyst Paul Meggyesi.</p>
+<p>Oil prices hit new four-year lows, unable to find a bottom despite their biggest fall in 2 1/2 years last week after OPEC resisted cuts to output in the face of a supply glut.</p>
+<p>U.S. crude fell more than two percent to a four-year low $64.62 per barrel after a 13.5 percent last week. That marked a 40 percent decline from their peak in June.</p>
+<p>Sliding oil prices have stirred deflation fears in the euro zone and Japan, cementing expectations that the European Central Bank and the Bank of Japan will take more steps to support their respective economies.</p>
+<p>The dollar, taking advantage of such concerns, attracted bids against the euro and yen.</p>
+<p>The euro was slightly weaker at $1.2441 after having fallen on Friday on data showing annual inflation in the euro zone cooled to five-year lows of 0.3 percent in November.</p>
+<p>Many traders expect the ECB may signal further action to ward off deflation later this week.</p>
+<p>The dollar also gained 0.2 percent in early trade to 118.81 yen, coming within sight of testing its seven-year high of 118.98 set on Nov. 20.</p>
+<p>The dollar index, which measures the greenback against a basket of major currencies, rose to 88.316, near four-year highs of 88.44 set on Monday last week.</p>
+<p>In Asia, falls in energy and raw material prices look set to hurt assets that are tied to the resource sector, including from Australian mining shares to the Malaysian ringgit.</p>
+<p>Australian shares dipped 0.2 percent in early trade, helping to push down MSCI's broadest index of Asia-Pacific shares outside Japan 0.3 percent.</p>
+<br>
+<br>
+Return to <a href="/blog/">Blog List</a>. 
+
+<br>
+
+</div>
+</div><!-- end container -->
+
+
+<div id="header">
+  <hr>
+<h3 class="title"> Help me to work on interesting projects.</h3>
+</div>
+<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+<input type="hidden" name="cmd" value="_s-xclick">
+<input type="hidden" name="hosted_button_id" value="Y33L3ZU24VPTY">
+<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+<img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
+</form>
+
+
+<div class="col-sm-12"><p>Copyright &copy; 2018-2020 MyProfile - Made with <span style="color: #e25555;">&hearts;</span> in Boston by <a href="http://tio2.github.io"> Pei Ma </a>- Source code at <a href='https://github.com/TiO2/tio2.github.io'> Github </a> </p> 
+</div>
+
+<script src="/static/js/script.js"></script>
+
+</body>
+</html>

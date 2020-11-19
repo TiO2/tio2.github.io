@@ -1,0 +1,65 @@
+<!doctype html>
+<head>
+<meta charset="utf-8">
+<title>{% block page_title %}My Site - Pei Ma{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+{% block css %}{% endblock %}
+
+
+<!-- active link for navigation -->
+<script>
+                        function setActive() {
+                          aObj = document.getElementById('main_nav').getElementsByTagName('a');
+                          
+                          aObj[0].id='menu-active';
+                          
+                          for(i=1;i<aObj.length;i++) { 
+                            aObj[i].id = "";
+                            
+                            if(document.location.href.indexOf(aObj[i].href)>=0) {
+                              aObj[i].id='menu-active';
+                              aObj[0].id='';
+                            }
+                          }
+                        }
+                        window.onload = setActive;                    
+</script>
+
+</head>
+                    
+<body class="box">
+<nav class="nav-menu" id="main_nav">
+<ul>
+<li><a href="{{ url_for('home') }}">Home</a></li>
+<li><a href="{{ url_for('blog') }}">Blog</a></li>
+<li><a href="{{ url_for('cv') }}">CV</a></li>
+<li><a href="{{ url_for('publication') }}">Publication</a></li>
+<li><a href="{{ url_for('links') }}">Useful Links</a></li>
+</ul>
+</nav>
+<div class="{% block content_class %}container{% endblock content_class %}">
+<div class="content" role="main">
+{% block content %}{% endblock %}
+</div>
+</div><!-- end container -->
+
+
+<div id="header">
+  <hr>
+<h3 class="title"> Help me to work on interesting projects.</h3>
+</div>
+<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+<input type="hidden" name="cmd" value="_s-xclick">
+<input type="hidden" name="hosted_button_id" value="Y33L3ZU24VPTY">
+<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+<img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
+</form>
+
+
+<div class="col-sm-12"><p>Copyright &copy; 2018-2020 MyProfile - Made with <span style="color: #e25555;">&hearts;</span> in Boston by <a href="http://tio2.github.io"> Pei Ma </a>- Source code at <a href='https://github.com/TiO2/tio2.github.io'> Github </a> </p> 
+</div>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+</body>
+</html>

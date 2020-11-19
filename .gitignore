@@ -1,0 +1,11 @@
+*.pyc
+*.pyo
+env
+env*
+dist
+*.egg
+*.egg-info
+*.html~
+*.py~
+
+*.DS_Store
