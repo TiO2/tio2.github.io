@@ -7,5 +7,6 @@ dist
 *.egg-info
 *.html~
 *.py~
+*.md~
 
 .DS_Store
