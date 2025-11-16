@@ -27,6 +27,8 @@ added Github CI Actions:
 
 # instructions to run: 
 
+    Works with Python 3.8
+
     $ pip install -r requirements.txt
 
 ## Run local server for local development
@@ -39,8 +41,7 @@ added Github CI Actions:
 
 ## deploy to github:
 
-Fork, modify, commit, push. 
-
+Github action is enabled to build the app. So simply Fork, modify, commit, push. 
 
 Reference: 
 1. https://github.com/sloria/flask-ghpages-example
